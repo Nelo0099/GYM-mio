@@ -1,0 +1,82 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 242 100% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 216 40% 98%;
+    --secondary-foreground: 222 20% 40%;
+    --muted: 216 40% 98%;
+    --muted-foreground: 221 16% 47%;
+    --accent: 242 100% 68%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 210 16% 91%;
+    --input: 210 16% 91%;
+    --ring: 242 100% 68%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline tracking-tight;
+  }
+}
+
+.input-ring-focus:focus-visible {
+  @apply ring-2 ring-primary ring-offset-2;
+}
+
+/* Forcing dark mode by default */
+.dark {
+  /* Backgrounds and foregrounds */
+  --background: 0 0% 14%;      /* dark background */
+  --foreground: 0 0% 92%;       /* light text */
+  --card: 0 0% 18%;
+  --card-foreground: 0 0% 92%;
+  --popover: 0 0% 18%;
+  --popover-foreground: 0 0% 92%;
+  --border: 210 16% 28%;
+  --input: 210 16% 28%;
+  --ring: 260 100% 68%;
+
+  /* Accent and primary colors */
+  --primary: 270 90% 70%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 216 40% 18%;
+  --secondary-foreground: 0 0% 92%;
+  --muted: 216 40% 18%;
+  --muted-foreground: 0 0% 90%;
+  --accent: 260 100% 68%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.2% 56%;
+  --destructive-foreground: 0 0% 98%;
+  --radius: 0.75rem;
+}
+
+@layer utilities {
+  .card-gradient { background-image: linear-gradient(180deg, #fafafa, #f5f5f5); }
+  .dark .card-gradient { background-image: linear-gradient(180deg, #27272a, #18181b); }
+}
+
+/* Override Tailwind 'bg-white' in dark mode to respect dark palette */
+.dark .bg-white {
+  background-color: hsl(var(--background)) !important;
+}

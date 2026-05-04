@@ -1,0 +1,46 @@
+{
+  "placeholderImages": [
+    {
+      "id": "member-1",
+      "description": "Happy gym member testimonial",
+      "imageUrl": "https://picsum.photos/seed/member1/200/200",
+      "imageHint": "portrait person"
+    },
+    {
+      "id": "member-2",
+      "description": "Satisfied client portrait",
+      "imageUrl": "https://picsum.photos/seed/member2/200/200",
+      "imageHint": "happy woman"
+    },
+    {
+      "id": "member-3",
+      "description": "Professional coach avatar",
+      "imageUrl": "https://picsum.photos/seed/coach1/200/200",
+      "imageHint": "fit man"
+    },
+    {
+      "id": "brand-logo-1",
+      "description": "Fitness brand partner 1",
+      "imageUrl": "https://picsum.photos/seed/brand1/150/50",
+      "imageHint": "logo grayscale"
+    },
+    {
+      "id": "brand-logo-2",
+      "description": "Fitness brand partner 2",
+      "imageUrl": "https://picsum.photos/seed/brand2/150/50",
+      "imageHint": "company logo"
+    },
+    {
+      "id": "brand-logo-3",
+      "description": "Fitness brand partner 3",
+      "imageUrl": "https://picsum.photos/seed/brand3/150/50",
+      "imageHint": "minimalist logo"
+    },
+    {
+      "id": "hero-bg",
+      "description": "Modern gym interior",
+      "imageUrl": "https://picsum.photos/seed/gym/1200/800",
+      "imageHint": "gym background"
+    }
+  ]
+}
