@@ -1,13 +1,78 @@
 
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
+  const [isRegister, setIsRegister] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    if (isRegister) {
+      // Register
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Registro exitoso",
+          description: "Ahora puedes iniciar sesión",
+        })
+        setIsRegister(false)
+      } else {
+        const error = await response.text()
+        toast({
+          title: "Error en registro",
+          description: error,
+          variant: "destructive",
+        })
+      }
+    } else {
+      // Login
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        toast({
+          title: "Error al iniciar sesión",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Inicio de sesión exitoso",
+          description: "Bienvenido!",
+        })
+        // Redirect based on user role
+        // For now, redirect to dashboard - middleware will handle role-based access
+        router.push("/dashboard")
+      }
+    }
+    setLoading(false)
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F7F9FC] p-6">
       <div className="w-full max-w-[450px] space-y-8">
@@ -19,77 +84,74 @@ export default function LoginPage() {
 
         <Card className="rounded-[12px] border-border shadow-lg bg-white overflow-hidden">
           <CardHeader className="pt-10 pb-6 px-10 text-center">
-            <CardTitle className="text-3xl font-extrabold text-foreground">Bienvenido de nuevo</CardTitle>
+            <CardTitle className="text-3xl font-extrabold text-foreground">
+              {isRegister ? "Únete a Impulso Fitness" : "Bienvenido de nuevo"}
+            </CardTitle>
             <CardDescription className="text-muted-foreground text-lg mt-2">
-              Ingresa tus credenciales para acceder.
+              {isRegister ? "Crea tu cuenta para comenzar tu transformación." : "Ingresa tus credenciales para acceder."}
             </CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10 space-y-6">
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isRegister && (
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-bold text-foreground">Nombre</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Tu nombre"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="rounded-[6px] h-12 bg-white border-border focus:ring-primary focus:border-primary transition-all"
+                    required
+                  />
+                </div>
+              )}
               <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-bold text-foreground">Correo Electrónico</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="ejemplo@gmail.com" 
+                <Label htmlFor="email" className="text-sm font-bold text-foreground">Correo Electrónico</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="ejemplo@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="rounded-[6px] h-12 bg-white border-border focus:ring-primary focus:border-primary transition-all"
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-bold text-foreground">Contraseña</Label>
-                  <a href="#" className="text-xs font-bold text-primary hover:underline">¿Olvidaste tu contraseña?</a>
+                  <Label htmlFor="password" className="text-sm font-bold text-foreground">Contraseña</Label>
+                  {!isRegister && <a href="#" className="text-xs font-bold text-primary hover:underline">¿Olvidaste tu contraseña?</a>}
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="rounded-[6px] h-12 bg-white border-border focus:ring-primary focus:border-primary transition-all"
+                  required
                 />
               </div>
-            </div>
 
-            <Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-[8px]">
-              Iniciar Sesión
-            </Button>
+              <Button type="submit" disabled={loading} className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-[8px]">
+                {loading ? "Cargando..." : (isRegister ? "Registrarse" : "Iniciar Sesión")}
+              </Button>
+            </form>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-4 text-foreground font-bold">O continúa con</span>
-              </div>
-            </div>
 
-              <Button variant="outline" className="w-full h-12 border-border text-foreground font-bold rounded-[8px] flex items-center justify-center gap-3">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Google
-            </Button>
           </CardContent>
         </Card>
 
         <p className="text-center text-sm text-muted-foreground">
-          ¿No tienes una cuenta?{" "}
-          <Link href="#" className="font-bold text-primary hover:underline">
-            Únete ahora
-          </Link>
+          {isRegister ? "¿Ya tienes cuenta?" : "¿No tienes una cuenta?"}{" "}
+          <button
+            type="button"
+            onClick={() => setIsRegister(!isRegister)}
+            className="font-bold text-primary hover:underline"
+          >
+            {isRegister ? "Inicia sesión" : "Únete ahora"}
+          </button>
         </p>
       </div>
     </div>
