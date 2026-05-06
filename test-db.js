@@ -1,13 +1,19 @@
-import { prisma } from './src/lib/db'
+import { config } from 'dotenv';
+import { PrismaClient } from '@prisma/client';
+
+config({ path: '.env.local' });
+
+const prisma = new PrismaClient();
 
 async function testConnection() {
   try {
-    await prisma.$connect()
-    console.log('Database connected successfully!')
-    await prisma.$disconnect()
+    console.log('Testing database connection...');
+    await prisma.$connect();
+    console.log('Database connected successfully!');
+    await prisma.$disconnect();
   } catch (error) {
-    console.error('Database connection failed:', error)
+    console.error('Database connection failed:', error.message);
   }
 }
 
-testConnection()
+testConnection();

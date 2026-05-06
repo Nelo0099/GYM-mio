@@ -2,6 +2,90 @@
 
 Aplicación de gimnasio SaaS con sistema de asistencia QR, gestión de usuarios y rutinas de ejercicio.
 
+## 🖥️ Desarrollo Local
+
+### Opción 1: Base de Datos Local (Recomendado si hay proxy)
+
+Si tu red local tiene proxy que bloquea conexiones a bases de datos externas, usa PostgreSQL en Docker:
+
+#### 1. Instalar Docker
+
+- Descarga e instala Docker Desktop desde [docker.com](https://www.docker.com/products/docker-desktop/)
+
+#### 2. Ejecutar PostgreSQL en Docker
+
+```bash
+# Ejecutar contenedor PostgreSQL
+docker run --name gym-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=gym_db -p 5432:5432 -d postgres:15
+
+# Verificar que está corriendo
+docker ps
+```
+
+#### 3. Variables de Entorno
+
+```bash
+# .env.local
+DATABASE_URL="postgresql://postgres:password@localhost:5432/gym_db"
+NEXTAUTH_SECRET="tu-secreto-aqui"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+#### 3. Variables de Entorno
+
+Crea `.env.local`:
+
+```bash
+# Base de datos local
+DATABASE_URL="postgresql://postgres:tu_password@localhost:5432/gym_db"
+
+# NextAuth Secret
+NEXTAUTH_SECRET="genera-un-secreto-nuevo"
+
+# URL local
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+### Opción 2: Base de Datos Neon (si no hay proxy)
+
+Usa Neon para desarrollo local y producción:
+
+1. Ve a [Neon Console](https://console.neon.tech) y crea una base de datos
+2. Copia la connection string
+
+```bash
+# .env.local
+DATABASE_URL="postgresql://username:password@hostname:5432/database?sslmode=require"
+NEXTAUTH_SECRET="tu-secreto-aqui"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+### 4. Instalación y Ejecución
+
+```bash
+# Instalar dependencias
+npm install
+
+# Generar cliente Prisma
+npx prisma generate
+
+# Aplicar esquema a la base de datos
+npx prisma db push
+
+# Crear usuario admin
+npx tsx create-admin.js
+
+# Ejecutar el proyecto
+npm run dev
+```
+
+### 4. Acceso
+
+- **Aplicación:** http://localhost:3000
+- **Admin:** rojonelov@gmail.com / User*123
+
+**Nota:** El desarrollo local usa la misma base de datos de Neon que producción, por lo que los cambios afectan ambos entornos.
+
 ## 🚀 Despliegue en Vercel
 
 ### 1. Preparación del Repositorio
@@ -11,12 +95,13 @@ Aplicación de gimnasio SaaS con sistema de asistencia QR, gestión de usuarios 
 
 ### 2. Configuración de Base de Datos
 
-1. Crea una base de datos PostgreSQL:
-   - **[Neon](https://neon.com)** (Recomendado - Free tier disponible)
-   - **[Supabase](https://supabase.com)** (Alternativa gratuita)
-   - **Railway** o **PlanetScale**
+Usa tu base de datos **Neon** para producción:
 
-2. Copia la URL de conexión de PostgreSQL (debe incluir `sslmode=require`)
+1. Ve a [Neon Console](https://console.neon.tech)
+2. Crea o usa tu base de datos existente
+3. Copia la connection string
+
+**Nota:** Producción usa Neon. Desarrollo local usa base de datos local (Docker) para evitar problemas con proxy.
 
 ### 3. Variables de Entorno en Vercel
 
@@ -26,18 +111,19 @@ En tu dashboard de Vercel, ve a **Project Settings** → **Environment Variables
 # Base de datos (OBLIGATORIO)
 DATABASE_URL="postgresql://username:password@hostname:5432/database?sslmode=require"
 
-# NextAuth (OBLIGATORIO)
-NEXTAUTH_SECRET="tu-secreto-muy-seguro-aqui-minimo-32-caracteres"
-NEXTAUTH_URL="https://tu-dominio.vercel.app"
+# NextAuth Secret (OBLIGATORIO - genera uno nuevo para producción)
+NEXTAUTH_SECRET="8788abd86033f8371c228330278ec81c2c6d88db0e1070d571046dfce6d0e631"
 
-# Opcional: Características de IA (Firebase)
-NEXT_PUBLIC_FIREBASE_API_KEY=""
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=""
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=""
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=""
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=""
-NEXT_PUBLIC_FIREBASE_APP_ID=""
+# URL de tu dominio en Vercel (OBLIGATORIO)
+NEXTAUTH_URL="https://tu-dominio.vercel.app"
 ```
+
+**⚠️ IMPORTANTE:** Genera un nuevo `NEXTAUTH_SECRET` para producción usando:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+No uses el mismo secret que en desarrollo.
 
 ### 4. Configuración del Build
 
