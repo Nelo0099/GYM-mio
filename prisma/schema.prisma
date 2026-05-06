@@ -7,8 +7,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -17,7 +17,7 @@ model User {
   name        String?
   password    String?
   role        String       @default("user") // "admin" or "user"
-  createdAt   String       @default("2024-01-01T00:00:00.000Z")
+  createdAt   DateTime     @default(now()) @db.Timestamp(6)
 
   // Add more fields as needed for gym app
   workouts    Workout[]
@@ -30,6 +30,7 @@ model Workout {
   name        String
   description String?
   exercises   Exercise[]
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -49,8 +50,8 @@ model Attendance {
   id        String   @id @default(cuid())
   userId    String
   date      String   // Formato: YYYY-MM-DD
-  timestamp String   @default("2024-01-01T00:00:00.000Z")
-  createdAt String   @default("2024-01-01T00:00:00.000Z")
+  timestamp DateTime @default(now()) @db.Timestamp(6)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
