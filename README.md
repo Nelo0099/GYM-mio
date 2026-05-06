@@ -73,13 +73,53 @@ npx tsx create-admin.js
    - **Nombre:** Admin User
 3. El sistema automáticamente te hará admin
 
-### 7. Verificación
+### 7. Configuración Post-Despliegue
+
+Después del despliegue exitoso, configura la base de datos:
+
+```bash
+# Configura tu DATABASE_URL de producción
+export DATABASE_URL="tu-url-de-postgresql-aqui"
+
+# Ejecuta el script de configuración
+chmod +x setup-production.sh
+./setup-production.sh
+```
+
+O manualmente:
+```bash
+npx prisma generate
+npx prisma db push
+npx tsx create-admin.js
+```
+
+### 8. Verificación
 
 Después del despliegue, verifica:
 - ✅ La aplicación carga correctamente
 - ✅ Puedes registrarte como usuario
-- ✅ El admin puede acceder al panel
+- ✅ El admin puede acceder al panel (`rojonelov@gmail.com` / `User*123`)
 - ✅ Las funcionalidades de QR y calendario funcionan
+- ✅ La base de datos responde correctamente
+
+### 9. Solución de Problemas
+
+#### Error: "Prisma client outdated"
+- ✅ Ya solucionado con `prisma generate` en el build
+
+#### Error: "Database connection failed"
+- Verifica que `DATABASE_URL` esté configurada correctamente en Vercel
+- Asegúrate de que la base de datos PostgreSQL esté activa
+
+#### Error: "Admin user not found"
+- Ejecuta el script `setup-production.sh` después del despliegue
+
+### 10. URLs Importantes
+
+- **Aplicación:** `https://tu-dominio.vercel.app`
+- **Login:** `https://tu-dominio.vercel.app/login`
+- **Dashboard Usuario:** `https://tu-dominio.vercel.app/dashboard`
+- **Panel Admin:** `https://tu-dominio.vercel.app/admin/dashboard`
 
 ## 🎯 Funcionalidades
 
