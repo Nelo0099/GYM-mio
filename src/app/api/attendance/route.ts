@@ -24,6 +24,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json("Invalid date format. Use YYYY-MM-DD", { status: 400 })
     }
 
+    console.log('Fetching attendances for date:', date)
+
+    console.log('Querying attendances for date:', date)
+
     const attendances = await prisma.attendance.findMany({
       where: {
         date: date
@@ -42,6 +46,8 @@ export async function GET(request: NextRequest) {
         timestamp: 'desc'
       }
     })
+
+    console.log('Found attendances:', attendances.length)
 
     return NextResponse.json({
       date,

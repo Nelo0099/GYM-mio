@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Plus, Dumbbell, Calendar, TrendingUp, Target, QrCode, Scan } from "lucide-react"
+import { Plus, Dumbbell, Calendar, TrendingUp, Target, QrCode, Scan, LogOut } from "lucide-react"
 import { Html5QrcodeScanner } from "html5-qrcode"
 
 interface Workout {
@@ -131,12 +131,15 @@ export default function UserDashboardPage() {
       const qrData = JSON.parse(decodedText)
 
       if (qrData.type === 'attendance') {
+        console.log('QR scanned, recording attendance for user:', session?.user?.id)
         // Register attendance
         const response = await fetch('/api/attendance/record', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: session?.user?.id }),
         })
+
+        console.log('Attendance record response status:', response.status)
 
         if (response.ok) {
           const data = await response.json()
@@ -219,10 +222,16 @@ export default function UserDashboardPage() {
   return (
     <div className="min-h-screen pt-24 bg-background">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Mi Dashboard</h1>
-          <p className="text-muted-foreground">Bienvenido de vuelta, {session?.user?.name}!</p>
-          <Badge variant="secondary" className="mt-2">Usuario</Badge>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Mi Dashboard</h1>
+            <p className="text-muted-foreground">Bienvenido de vuelta, {session?.user?.name}!</p>
+            <Badge variant="secondary" className="mt-2">Usuario</Badge>
+          </div>
+          <Button onClick={() => signOut({ callbackUrl: '/' })} variant="outline" className="flex items-center gap-2">
+            <LogOut className="h-4 w-4" />
+            Cerrar Sesión
+          </Button>
         </div>
 
         {/* Quick Stats */}

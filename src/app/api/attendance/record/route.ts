@@ -13,15 +13,20 @@ export async function POST(request: NextRequest) {
 
     const { userId } = await request.json()
 
+    console.log('Received userId:', userId)
+
     if (!userId) {
       return NextResponse.json("Missing userId", { status: 400 })
     }
 
     // Get current date in Havana, Cuba timezone (UTC-4)
     const now = new Date()
+    // Since Vercel runs in UTC, we need to adjust for Havana time (UTC-4)
     const havanaTime = new Date(now.getTime() - (4 * 60 * 60 * 1000)) // UTC-4
     const dateStr = havanaTime.toISOString().split('T')[0] // YYYY-MM-DD format
     const timestamp = havanaTime.toISOString()
+
+    console.log('Recording attendance for date:', dateStr, 'timestamp:', timestamp)
 
     // Check if attendance already exists for today
     const existingAttendance = await prisma.attendance.findUnique({

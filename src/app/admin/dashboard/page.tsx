@@ -227,15 +227,17 @@ export default function AdminDashboardPage() {
   const handleDateChange = async (date: Date) => {
     setSelectedDate(date)
 
-    // Get attendances for selected date in Havana timezone
-    const havanaDate = new Date(date.getTime() - (4 * 60 * 60 * 1000)) // UTC-4
-    const dateStr = havanaDate.toISOString().split('T')[0] // YYYY-MM-DD
+    // Send date as-is, let server handle timezone conversion
+    const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD
+
+    console.log('Requesting attendances for date:', dateStr)
 
     try {
       const response = await fetch(`/api/attendance?date=${dateStr}`)
       if (response.ok) {
         const data = await response.json()
         setAttendances(data.attendances || [])
+        console.log('Fetched attendances:', data.attendances?.length || 0)
       }
     } catch (error) {
       console.error("Error fetching attendances:", error)
