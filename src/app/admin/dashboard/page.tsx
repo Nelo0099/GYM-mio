@@ -252,15 +252,19 @@ export default function AdminDashboardPage() {
         timestamp: Date.now()
       })
 
+      console.log('Generating QR code with data:', qrData)
+
       const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
         width: 256,
         margin: 2,
         color: {
           dark: '#000000',
           light: '#FFFFFF'
-        }
+        },
+        errorCorrectionLevel: 'M'
       })
 
+      console.log('QR code generated successfully')
       setQrCodeUrl(qrCodeDataUrl)
     } catch (error) {
       console.error("Error generating QR code:", error)

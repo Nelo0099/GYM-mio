@@ -182,7 +182,12 @@ export default function UserDashboardPage() {
   }
 
   const handleQrError = (error: any) => {
-    console.error("QR scan error:", error)
+    // Only log serious errors, not every frame
+    if (error?.includes && error.includes('No MultiFormat Readers')) {
+      console.warn("QR scan: No code detected in frame")
+    } else {
+      console.error("QR scan error:", error)
+    }
   }
 
   const startQrScanner = () => {
@@ -197,8 +202,8 @@ export default function UserDashboardPage() {
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
+          qrbox: 250, // Simple square qrbox
           aspectRatio: 1.0,
-          supportedScanTypes: ["qr_code"], // Explicitly specify QR codes
         },
         false
       )
