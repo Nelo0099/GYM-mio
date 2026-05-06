@@ -16,12 +16,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    const { userId } = await request.json()
+    // Get userId from session instead of request body
+    const userId = session.user.id
 
-    console.log('Received userId:', userId)
+    console.log('User ID from session:', userId)
 
     if (!userId) {
-      return NextResponse.json("Missing userId", { status: 400 })
+      return NextResponse.json("No user ID in session", { status: 400 })
     }
 
     // Get current date in Havana, Cuba timezone (UTC-4)

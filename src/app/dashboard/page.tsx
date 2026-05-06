@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession, signOut } from "next-auth/react"
+import { useSession, signOut, getSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -131,15 +131,30 @@ export default function UserDashboardPage() {
     try {
       const qrData = JSON.parse(decodedText)
       console.log('Parsed QR data:', qrData)
+      console.log('Current session status:', status)
+      console.log('Current session data:', session)
 
       if (qrData.type === 'attendance') {
         console.log('QR scanned, recording attendance for user:', session?.user?.id)
+
+        // Check if we have a valid session
+        if (!session?.user?.id) {
+          console.error('No valid session found!')
+          toast({
+            title: "Error de sesión",
+            description: "Tu sesión no está activa. Intenta recargar la página.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        console.log('Session user ID found:', session.user.id)
         // Register attendance
         const response = await fetch('/api/attendance/record', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ userId: session?.user?.id }),
+          body: JSON.stringify({}), // Empty body, user ID comes from session
         })
 
         console.log('Attendance record response status:', response.status)
@@ -251,14 +266,15 @@ export default function UserDashboardPage() {
           <Card className="md:col-span-4">
             <CardContent className="pt-6">
               <div className="flex justify-center">
-                <Button
-                  onClick={startQrScanner}
-                  className="flex items-center gap-2 px-8 py-3 text-lg"
-                  size="lg"
-                >
-                  <Scan className="h-5 w-5" />
-                  Escanear QR para Registrar Asistencia
-                </Button>
+        <Button
+          onClick={startQrScanner}
+          className="flex items-center gap-2 px-8 py-3 text-lg"
+          size="lg"
+          disabled={status !== 'authenticated' || !session?.user?.id}
+        >
+          <Scan className="h-5 w-5" />
+          Escanear QR para Registrar Asistencia
+        </Button>
               </div>
               <p className="text-center text-sm text-muted-foreground mt-2">
                 Escanea el código QR del gimnasio para registrar tu asistencia diaria
