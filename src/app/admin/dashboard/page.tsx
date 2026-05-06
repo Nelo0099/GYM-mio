@@ -73,7 +73,9 @@ export default function AdminDashboardPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users')
+      const response = await fetch('/api/admin/users', {
+        credentials: 'include'
+      })
       if (response.ok) {
         const data = await response.json()
         setUsers(data)
@@ -126,6 +128,7 @@ export default function AdminDashboardPage() {
     const response = await fetch('/api/admin/update-role', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ userId, role }),
     })
     if (response.ok) {
@@ -156,6 +159,7 @@ export default function AdminDashboardPage() {
     const response = await fetch('/api/admin/create-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(newUser),
     })
 
@@ -199,6 +203,7 @@ export default function AdminDashboardPage() {
     const response = await fetch('/api/admin/delete-user', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ userId: userToDelete.id }),
     })
 
@@ -234,7 +239,9 @@ export default function AdminDashboardPage() {
     console.log('Requesting attendances for date:', dateStr)
 
     try {
-      const response = await fetch(`/api/attendance?date=${dateStr}`)
+      const response = await fetch(`/api/attendance?date=${dateStr}`, {
+        credentials: 'include'
+      })
       if (response.ok) {
         const data = await response.json()
         setAttendances(data.attendances || [])
