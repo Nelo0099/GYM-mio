@@ -5,9 +5,14 @@ import { prisma } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Headers received:', Object.keys(request.headers))
     const session = await getServerSession(authOptions)
+    console.log('Session retrieved:', !!session)
+    console.log('Session user:', session?.user ? 'exists' : 'missing')
+    console.log('Session user ID:', session?.user?.id)
 
     if (!session?.user?.id) {
+      console.log('Authorization failed - no session or user ID')
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 

@@ -127,8 +127,10 @@ export default function UserDashboardPage() {
   }
 
   const handleQrScan = async (decodedText: string, decodedResult: any) => {
+    console.log('QR scanned, raw text:', decodedText)
     try {
       const qrData = JSON.parse(decodedText)
+      console.log('Parsed QR data:', qrData)
 
       if (qrData.type === 'attendance') {
         console.log('QR scanned, recording attendance for user:', session?.user?.id)
@@ -136,6 +138,7 @@ export default function UserDashboardPage() {
         const response = await fetch('/api/attendance/record', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ userId: session?.user?.id }),
         })
 
@@ -183,20 +186,24 @@ export default function UserDashboardPage() {
   }
 
   const startQrScanner = () => {
+    console.log('Starting QR scanner')
     setIsQrScannerOpen(true)
 
     // Initialize scanner after dialog opens
     setTimeout(() => {
+      console.log('Initializing Html5QrcodeScanner')
       const qrScanner = new Html5QrcodeScanner(
         "qr-reader",
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1.0,
+          supportedScanTypes: ["qr_code"], // Explicitly specify QR codes
         },
         false
       )
 
+      console.log('Rendering scanner')
       qrScanner.render(handleQrScan, handleQrError)
       setScanner(qrScanner)
     }, 100)
