@@ -1,12 +1,20 @@
 "use client"
 
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, UserCheck, Settings, BarChart3 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
+import { Users, UserCheck, Settings, BarChart3, Plus, Trash2, LogOut, Mail, User, Calendar, QrCode } from "lucide-react"
+import { Calendar as CalendarComponent } from 'react-calendar'
+import QRCode from 'qrcode'
+import 'react-calendar/dist/Calendar.css'
 
 interface User {
   id: string
@@ -26,7 +34,20 @@ interface Stats {
 export default function AdminDashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { toast } = useToast()
   const [users, setUsers] = useState<User[]>([])
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user'
+  })
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
+  const [attendances, setAttendances] = useState<any[]>([])
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     adminUsers: 0,
@@ -40,15 +61,39 @@ export default function AdminDashboardPage() {
       router.push('/dashboard')
       return
     }
-    fetchUsers()
+    // Add a small delay to ensure session is fully loaded
+    setTimeout(() => {
+      fetchUsers()
+      generateQRCode()
+      if (selectedDate) {
+        handleDateChange(selectedDate)
+      }
+    }, 100)
   }, [session, status, router])
 
   const fetchUsers = async () => {
-    const response = await fetch('/api/admin/users')
-    if (response.ok) {
-      const data = await response.json()
-      setUsers(data)
-      calculateStats(data)
+    try {
+      const response = await fetch('/api/admin/users')
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data)
+        calculateStats(data)
+      } else {
+        const errorText = await response.text()
+        console.error("Error fetching users:", errorText)
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los usuarios",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Network error:", error)
+      toast({
+        title: "Error de conexión",
+        description: "Verifica tu conexión a internet",
+        variant: "destructive",
+      })
     }
   }
 
@@ -56,11 +101,17 @@ export default function AdminDashboardPage() {
     const total = userData.length
     const admins = userData.filter(u => u.role === 'admin').length
     const regulars = total - admins
+
+    // Calculate users created in the current week (Havana timezone UTC-4)
+    const now = new Date()
+    const havanaNow = new Date(now.getTime() - (4 * 60 * 60 * 1000)) // UTC-4
+    const startOfWeek = new Date(havanaNow)
+    startOfWeek.setDate(havanaNow.getDate() - havanaNow.getDay()) // Start of week (Sunday)
+    startOfWeek.setHours(0, 0, 0, 0)
+
     const recent = userData.filter(u => {
       const createdAt = new Date(u.createdAt)
-      const weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 7)
-      return createdAt > weekAgo
+      return createdAt >= startOfWeek
     }).length
 
     setStats({
@@ -78,7 +129,145 @@ export default function AdminDashboardPage() {
       body: JSON.stringify({ userId, role }),
     })
     if (response.ok) {
+      toast({
+        title: "Rol actualizado",
+        description: "El rol del usuario ha sido actualizado exitosamente",
+      })
       fetchUsers() // Refresh list
+    } else {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el rol del usuario",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const createUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      toast({
+        title: "Error",
+        description: "Todos los campos son obligatorios",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const response = await fetch('/api/admin/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newUser),
+    })
+
+    if (response.ok) {
+      toast({
+        title: "Usuario creado",
+        description: "El usuario ha sido creado exitosamente",
+      })
+      setIsCreateDialogOpen(false)
+      setNewUser({ name: '', email: '', password: '', role: 'user' })
+      fetchUsers()
+    } else {
+      const error = await response.text()
+      toast({
+        title: "Error",
+        description: error || "No se pudo crear el usuario",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return
+
+    if (userToDelete.email === 'rojonelov@gmail.com') {
+      toast({
+        title: "Error",
+        description: "No se puede eliminar al administrador principal",
+        variant: "destructive",
+      })
+      setIsDeleteDialogOpen(false)
+      setUserToDelete(null)
+      return
+    }
+
+    const response = await fetch('/api/admin/delete-user', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userToDelete.id }),
+    })
+
+    if (response.ok) {
+      toast({
+        title: "Usuario eliminado",
+        description: "El usuario ha sido eliminado exitosamente",
+      })
+      fetchUsers()
+    } else {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el usuario",
+        variant: "destructive",
+      })
+    }
+
+    setIsDeleteDialogOpen(false)
+    setUserToDelete(null)
+  }
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/' })
+  }
+
+  const handleDateChange = async (date: Date) => {
+    setSelectedDate(date)
+
+    // Get attendances for selected date in Havana timezone
+    const havanaDate = new Date(date.getTime() - (4 * 60 * 60 * 1000)) // UTC-4
+    const dateStr = havanaDate.toISOString().split('T')[0] // YYYY-MM-DD
+
+    try {
+      const response = await fetch(`/api/attendance?date=${dateStr}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAttendances(data.attendances || [])
+      }
+    } catch (error) {
+      console.error("Error fetching attendances:", error)
+      setAttendances([])
+    }
+  }
+
+  const generateQRCode = async () => {
+    try {
+      const qrData = JSON.stringify({
+        type: 'attendance',
+        adminId: session?.user?.id,
+        timestamp: Date.now()
+      })
+
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      })
+
+      setQrCodeUrl(qrCodeDataUrl)
+    } catch (error) {
+      console.error("Error generating QR code:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo generar el código QR",
+        variant: "destructive",
+      })
     }
   }
 
@@ -94,10 +283,16 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen pt-24 bg-background">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Panel de Administración</h1>
-          <p className="text-muted-foreground">Bienvenido, {session?.user?.name}</p>
-          <Badge variant="secondary" className="mt-2">Administrador</Badge>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Panel de Administración</h1>
+            <p className="text-muted-foreground">Bienvenido, {session?.user?.name}</p>
+            <Badge variant="secondary" className="mt-2">Administrador</Badge>
+          </div>
+          <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2">
+            <LogOut className="h-4 w-4" />
+            Cerrar Sesión
+          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -143,6 +338,85 @@ export default function AdminDashboardPage() {
           </Card>
         </div>
 
+        {/* Create User Button */}
+        <div className="mb-6">
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Crear Nuevo Usuario
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Nombre
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                    className="col-span-3"
+                    placeholder="Nombre completo"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                    className="col-span-3"
+                    placeholder="usuario@email.com"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="password" className="text-right">
+                    Contraseña
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                    className="col-span-3"
+                    placeholder="Contraseña segura"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="role" className="text-right">
+                    Rol
+                  </Label>
+                  <select
+                    id="role"
+                    value={newUser.role}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
+                    className="col-span-3 px-3 py-2 border border-input bg-background rounded-md"
+                  >
+                    <option value="user">Usuario</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={createUser} disabled={!newUser.name || !newUser.email || !newUser.password}>
+                  Crear Usuario
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
         {/* Users Management */}
         <Card>
           <CardHeader>
@@ -183,12 +457,160 @@ export default function AdminDashboardPage() {
                         Quitar Admin
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteUser(user)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
+
+        {/* Attendance Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          {/* QR Code */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <QrCode className="h-5 w-5" />
+                Código QR de Asistencia
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              {qrCodeUrl ? (
+                <div className="space-y-4">
+                  <img
+                    src={qrCodeUrl}
+                    alt="QR Code para asistencia"
+                    className="mx-auto border rounded-lg"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Los usuarios pueden escanear este código para registrar su asistencia
+                  </p>
+                  <Button onClick={generateQRCode} variant="outline" size="sm">
+                    Regenerar QR
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={generateQRCode}>
+                  Generar Código QR
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Calendar */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Calendario de Asistencias
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="calendar-container">
+                <CalendarComponent
+                  onChange={handleDateChange}
+                  value={selectedDate}
+                  className="w-full border-none"
+                  locale="es-ES"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Attendance Table */}
+        {selectedDate && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>
+                Asistencias del {selectedDate.toLocaleDateString('es-ES')}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Total de asistencias: {attendances.length}
+              </p>
+            </CardHeader>
+            <CardContent>
+              {attendances.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No hay asistencias registradas para este día</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Usuario</th>
+                        <th className="text-left p-2">Email</th>
+                        <th className="text-left p-2">Hora de Asistencia</th>
+                        <th className="text-left p-2">Rol</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attendances.map((attendance: any) => (
+                        <tr key={attendance.id} className="border-b hover:bg-muted/50">
+                          <td className="p-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                <User className="h-4 w-4 text-primary" />
+                              </div>
+                              {attendance.user.name || 'Sin nombre'}
+                            </div>
+                          </td>
+                          <td className="p-2 text-muted-foreground">{attendance.user.email}</td>
+                          <td className="p-2">
+                            {new Date(attendance.timestamp).toLocaleTimeString('es-ES', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit'
+                            })}
+                          </td>
+                          <td className="p-2">
+                            <Badge variant={attendance.user.role === 'admin' ? 'default' : 'secondary'}>
+                              {attendance.user.role === 'admin' ? 'Admin' : 'Usuario'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. Esto eliminará permanentemente la cuenta
+                del usuario <strong>{userToDelete?.name || userToDelete?.email}</strong> y
+                removerá todos sus datos asociados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setIsDeleteDialogOpen(false)
+                setUserToDelete(null)
+              }}>
+                No, cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Sí, eliminar usuario
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

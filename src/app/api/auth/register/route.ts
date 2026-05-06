@@ -4,39 +4,41 @@ import { prisma } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json()
+    console.log("Register API called")
+
+    const body = await request.json()
+    console.log("Request body:", body)
+
+    const { name, email, password } = body
 
     if (!name || !email || !password) {
+      console.log("Missing fields:", { name, email, password: !!password })
       return NextResponse.json("Missing fields", { status: 400 })
     }
 
+    console.log("Checking database connection...")
+    await prisma.$connect()
+    console.log("Database connected")
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+    console.log("Password hashed")
+
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
 
     if (existingUser) {
+      console.log("User already exists:", email)
       return NextResponse.json("User already exists", { status: 400 })
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // Determine role based on email
+    const role = email === 'rojonelov@gmail.com' ? 'admin' : 'user'
 
-    // Check if this is the first user (make admin) or specific admin email
-    const isAdmin = email === 'rojonelov@gmail.com'
-    const role = isAdmin ? 'admin' : 'user'
+    console.log("Creating user with role:", role)
 
-    if (isAdmin && password === 'User*123') {
-      // Create admin user
-      const user = await prisma.user.create({
-        data: {
-          name: name || 'Admin User',
-          email,
-          password: hashedPassword,
-          role: 'admin',
-        }
-      })
-      return NextResponse.json({ message: "Admin user created", userId: user.id, role: 'admin' })
-    }
-
+    // Create user
     const user = await prisma.user.create({
       data: {
         name,
@@ -46,9 +48,18 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ message: "User created", userId: user.id, role })
+    console.log("User created successfully:", user.id)
+
+    return NextResponse.json({
+      message: "User created",
+      userId: user.id,
+      role: user.role
+    })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json("Internal server error", { status: 500 })
+    console.error("Registration error:", error)
+    return NextResponse.json({
+      error: "Internal server error",
+      details: error.message
+    }, { status: 500 })
   }
 }

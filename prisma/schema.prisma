@@ -7,21 +7,21 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String?
-  role      String   @default("user") // "admin" or "user"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  password    String?
+  role        String       @default("user") // "admin" or "user"
+  createdAt   String       @default("2024-01-01T00:00:00.000Z")
 
   // Add more fields as needed for gym app
-  workouts  Workout[]
+  workouts    Workout[]
+  attendances Attendance[]
 }
 
 model Workout {
@@ -30,8 +30,6 @@ model Workout {
   name        String
   description String?
   exercises   Exercise[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -43,7 +41,18 @@ model Exercise {
   sets        Int?
   reps        Int?
   weight      Float?
-  createdAt   DateTime @default(now())
 
   workout     Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String   // Formato: YYYY-MM-DD
+  timestamp String   @default("2024-01-01T00:00:00.000Z")
+  createdAt String   @default("2024-01-01T00:00:00.000Z")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date]) // Un usuario solo puede tener una asistencia por día
 }

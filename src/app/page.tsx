@@ -1,12 +1,9 @@
 
 import { Navbar } from "@/components/Navbar"
-import { SocialProof } from "@/components/SocialProof"
 import { Features } from "@/components/Features"
 import { DashboardPreview } from "@/components/DashboardPreview"
 import { Testimonials } from "@/components/Testimonials"
 import { WorkoutAI } from "@/components/WorkoutAI"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { HeroScrollDemo } from "@/components/ui/hero-scroll-demo"
 import { InfiniteMovingCards } from "@/components/ui/infinite-moving-cards"
 

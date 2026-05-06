@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus, Dumbbell, Calendar, TrendingUp, Target } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Plus, Dumbbell, Calendar, TrendingUp, Target, QrCode, Scan } from "lucide-react"
+import { Html5QrcodeScanner } from "html5-qrcode"
 
 interface Workout {
   id: string
@@ -37,6 +38,8 @@ export default function UserDashboardPage() {
     description: '',
     exercises: [{ name: '', sets: 3, reps: 10, weight: 0 }]
   })
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false)
+  const [scanner, setScanner] = useState<Html5QrcodeScanner | null>(null)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -123,6 +126,87 @@ export default function UserDashboardPage() {
     }))
   }
 
+  const handleQrScan = async (decodedText: string, decodedResult: any) => {
+    try {
+      const qrData = JSON.parse(decodedText)
+
+      if (qrData.type === 'attendance' && qrData.adminId) {
+        // Register attendance
+        const response = await fetch('/api/attendance/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: session?.user?.id }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          toast({
+            title: "¡Asistencia registrada!",
+            description: `Bienvenido al gimnasio. Hora: ${new Date().toLocaleTimeString('es-ES')}`,
+          })
+
+          // Close scanner
+          if (scanner) {
+            scanner.clear().catch(console.error)
+            setScanner(null)
+          }
+          setIsQrScannerOpen(false)
+        } else {
+          toast({
+            title: "Error",
+            description: "No se pudo registrar la asistencia",
+            variant: "destructive",
+          })
+        }
+      } else {
+        toast({
+          title: "Código QR inválido",
+          description: "Este no es un código QR de asistencia válido",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("QR scan error:", error)
+      toast({
+        title: "Error al escanear",
+        description: "El código QR no es válido",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleQrError = (error: any) => {
+    console.error("QR scan error:", error)
+  }
+
+  const startQrScanner = () => {
+    setIsQrScannerOpen(true)
+
+    // Initialize scanner after dialog opens
+    setTimeout(() => {
+      const qrScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        },
+        false
+      )
+
+      qrScanner.render(handleQrScan, handleQrError)
+      setScanner(qrScanner)
+    }, 100)
+  }
+
+  const closeQrScanner = () => {
+    if (scanner) {
+      scanner.clear().catch(console.error)
+      setScanner(null)
+    }
+    setIsQrScannerOpen(false)
+  }
+
   if (status === 'loading') return (
     <div className="min-h-screen pt-24 bg-background flex items-center justify-center">
       <div className="text-center">
@@ -142,6 +226,45 @@ export default function UserDashboardPage() {
         </div>
 
         {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="md:col-span-4">
+            <CardContent className="pt-6">
+              <div className="flex justify-center">
+                <Button
+                  onClick={startQrScanner}
+                  className="flex items-center gap-2 px-8 py-3 text-lg"
+                  size="lg"
+                >
+                  <Scan className="h-5 w-5" />
+                  Escanear QR para Registrar Asistencia
+                </Button>
+              </div>
+              <p className="text-center text-sm text-muted-foreground mt-2">
+                Escanea el código QR del gimnasio para registrar tu asistencia diaria
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* QR Scanner Dialog */}
+        <Dialog open={isQrScannerOpen} onOpenChange={closeQrScanner}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <QrCode className="h-5 w-5" />
+                Escanear Código QR
+              </DialogTitle>
+            </DialogHeader>
+            <div id="qr-reader" className="w-full"></div>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={closeQrScanner}>
+                Cancelar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

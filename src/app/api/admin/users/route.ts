@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
 
     if (!session?.user?.role || session.user.role !== 'admin') {
       return NextResponse.json("Unauthorized", { status: 401 })
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(users)
   } catch (error) {
-    console.error(error)
+    console.error("API Error:", error)
     return NextResponse.json("Internal server error", { status: 500 })
   }
 }
