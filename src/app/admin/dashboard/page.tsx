@@ -230,6 +230,7 @@ export default function AdminDashboardPage() {
     // Send date as-is, let server handle timezone conversion
     const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD
 
+    console.log('Calendar date selected:', date.toISOString())
     console.log('Requesting attendances for date:', dateStr)
 
     try {
@@ -238,6 +239,7 @@ export default function AdminDashboardPage() {
         const data = await response.json()
         setAttendances(data.attendances || [])
         console.log('Fetched attendances:', data.attendances?.length || 0)
+        console.log('Attendance details:', data.attendances)
       }
     } catch (error) {
       console.error("Error fetching attendances:", error)

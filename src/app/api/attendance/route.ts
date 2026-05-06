@@ -26,7 +26,29 @@ export async function GET(request: NextRequest) {
 
     console.log('Fetching attendances for date:', date)
 
-    console.log('Querying attendances for date:', date)
+    // Also try to find all attendances to debug
+    const allAttendances = await prisma.attendance.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          }
+        }
+      },
+      orderBy: {
+        timestamp: 'desc'
+      }
+    })
+
+    console.log('All attendances in database:', allAttendances.map(a => ({
+      id: a.id,
+      date: a.date,
+      user: a.user.name,
+      timestamp: a.timestamp
+    })))
 
     const attendances = await prisma.attendance.findMany({
       where: {
@@ -47,7 +69,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    console.log('Found attendances:', attendances.length)
+    console.log('Found attendances for date', date, ':', attendances.length)
 
     return NextResponse.json({
       date,

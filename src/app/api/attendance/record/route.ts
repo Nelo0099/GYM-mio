@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
     const dateStr = havanaTime.toISOString().split('T')[0] // YYYY-MM-DD format
     const timestamp = havanaTime.toISOString()
 
+    console.log('Current UTC time:', now.toISOString())
+    console.log('Havana time:', havanaTime.toISOString())
     console.log('Recording attendance for date:', dateStr, 'timestamp:', timestamp)
 
     // Check if attendance already exists for today
