@@ -45,7 +45,7 @@ export default function AdminDashboardPage() {
     password: '',
     role: 'user'
   })
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [attendances, setAttendances] = useState<any[]>([])
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
   const [stats, setStats] = useState<Stats>({
@@ -57,17 +57,21 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (status === 'loading') return
+    if (status !== 'authenticated' || !session?.user?.id) {
+      return
+    }
     if (!session?.user?.role || session.user.role !== 'admin') {
       router.push('/dashboard')
       return
     }
+
+    console.log('Admin dashboard: Session authenticated, initializing...')
+
     // Add a small delay to ensure session is fully loaded
     setTimeout(() => {
       fetchUsers()
       generateQRCode()
-      if (selectedDate) {
-        handleDateChange(selectedDate)
-      }
+      // Don't auto-call handleDateChange on load - wait for user click
     }, 100)
   }, [session, status, router])
 
@@ -230,6 +234,10 @@ export default function AdminDashboardPage() {
   }
 
   const handleDateChange = async (date: Date) => {
+    console.log('handleDateChange called with date:', date)
+    console.log('Current session status:', status)
+    console.log('Current session user:', session?.user)
+
     setSelectedDate(date)
 
     // Send date as-is, let server handle timezone conversion
