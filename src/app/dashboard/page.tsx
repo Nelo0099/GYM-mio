@@ -130,7 +130,7 @@ export default function UserDashboardPage() {
     try {
       const qrData = JSON.parse(decodedText)
 
-      if (qrData.type === 'attendance' && qrData.adminId) {
+      if (qrData.type === 'attendance') {
         // Register attendance
         const response = await fetch('/api/attendance/record', {
           method: 'POST',

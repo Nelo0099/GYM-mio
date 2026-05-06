@@ -247,7 +247,6 @@ export default function AdminDashboardPage() {
     try {
       const qrData = JSON.stringify({
         type: 'attendance',
-        adminId: session?.user?.id,
         timestamp: Date.now()
       })
 
