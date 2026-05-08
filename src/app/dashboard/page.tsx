@@ -248,14 +248,14 @@ export default function UserDashboardPage() {
 
   return (
     <div className="min-h-screen pt-24 bg-background">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="mb-8 flex justify-between items-start">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Mi Dashboard</h1>
-            <p className="text-muted-foreground">Bienvenido de vuelta, {session?.user?.name}!</p>
-            <Badge variant="secondary" className="mt-2">Usuario</Badge>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Mi Dashboard</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Bienvenido de vuelta, {session?.user?.name}!</p>
+            <Badge variant="secondary" className="mt-2 text-xs">Usuario</Badge>
           </div>
-          <Button onClick={() => signOut({ callbackUrl: '/' })} variant="outline" className="flex items-center gap-2">
+          <Button onClick={() => signOut({ callbackUrl: '/' })} variant="outline" className="flex items-center gap-2 w-full sm:w-auto text-sm">
             <LogOut className="h-4 w-4" />
             Cerrar Sesión
           </Button>
@@ -285,16 +285,16 @@ export default function UserDashboardPage() {
 
         {/* QR Scanner Dialog */}
         <Dialog open={isQrScannerOpen} onOpenChange={closeQrScanner}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="w-[95vw] max-w-md mx-4 p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <QrCode className="h-5 w-5" />
+              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <QrCode className="h-4 w-4 sm:h-5 sm:w-5" />
                 Escanear Código QR
               </DialogTitle>
             </DialogHeader>
-            <div id="qr-reader" className="w-full"></div>
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={closeQrScanner}>
+            <div id="qr-reader" className="w-full min-h-[250px] sm:min-h-[300px]"></div>
+            <div className="flex justify-end mt-4">
+              <Button variant="outline" onClick={closeQrScanner} className="w-full sm:w-auto">
                 Cancelar
               </Button>
             </div>
@@ -350,14 +350,14 @@ export default function UserDashboardPage() {
         <div className="mb-6">
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
+              <Button className="flex items-center gap-2 w-full sm:w-auto text-sm">
                 <Plus className="h-4 w-4" />
                 Crear Nueva Rutina
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto mx-4 p-4 sm:p-6">
               <DialogHeader>
-                <DialogTitle>Crear Nueva Rutina</DialogTitle>
+                <DialogTitle className="text-lg sm:text-xl">Crear Nueva Rutina</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -384,48 +384,53 @@ export default function UserDashboardPage() {
                   <Label>Ejercicios</Label>
                   <div className="space-y-3 mt-2">
                     {newWorkout.exercises.map((exercise, index) => (
-                      <div key={index} className="flex gap-2 items-end">
-                        <div className="flex-1">
+                      <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
+                        <div className="sm:col-span-2">
                           <Input
                             placeholder="Nombre del ejercicio"
                             value={exercise.name}
                             onChange={(e) => updateExercise(index, 'name', e.target.value)}
+                            className="text-sm"
                           />
                         </div>
-                        <div className="w-16">
+                        <div className="sm:col-span-1">
                           <Input
                             type="number"
                             placeholder="Sets"
                             value={exercise.sets}
                             onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value))}
+                            className="text-sm"
                           />
                         </div>
-                        <div className="w-16">
+                        <div className="sm:col-span-1">
                           <Input
                             type="number"
                             placeholder="Reps"
                             value={exercise.reps}
                             onChange={(e) => updateExercise(index, 'reps', parseInt(e.target.value))}
+                            className="text-sm"
                           />
                         </div>
-                        <div className="w-20">
+                        <div className="flex gap-1 sm:col-span-1">
                           <Input
                             type="number"
                             placeholder="Peso"
                             value={exercise.weight}
                             onChange={(e) => updateExercise(index, 'weight', parseFloat(e.target.value))}
+                            className="text-sm flex-1"
                           />
+                          {newWorkout.exercises.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeExercise(index)}
+                              className="px-2"
+                            >
+                              ×
+                            </Button>
+                          )}
                         </div>
-                        {newWorkout.exercises.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeExercise(index)}
-                          >
-                            ×
-                          </Button>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -456,17 +461,17 @@ export default function UserDashboardPage() {
         </div>
 
         {/* Workouts List */}
-        <div className="grid gap-6">
-          <h2 className="text-2xl font-bold">Mis Rutinas</h2>
+        <div className="grid gap-4 sm:gap-6">
+          <h2 className="text-xl sm:text-2xl font-bold">Mis Rutinas</h2>
           {workouts.length === 0 ? (
             <Card>
-              <CardContent className="text-center py-12">
-                <Dumbbell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No tienes rutinas aún</h3>
-                <p className="text-muted-foreground mb-4">
+              <CardContent className="text-center py-8 sm:py-12 px-4">
+                <Dumbbell className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-base sm:text-lg font-medium mb-2">No tienes rutinas aún</h3>
+                <p className="text-muted-foreground text-sm sm:text-base mb-4 px-2">
                   Crea tu primera rutina para comenzar tu transformación
                 </p>
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Button onClick={() => setIsCreateDialogOpen(true)} className="w-full sm:w-auto">
                   Crear Primera Rutina
                 </Button>
               </CardContent>
@@ -475,31 +480,36 @@ export default function UserDashboardPage() {
             <div className="grid gap-4">
               {workouts.map((workout) => (
                 <Card key={workout.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-xl">{workout.name}</CardTitle>
+                  <CardHeader className="pb-3">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-lg sm:text-xl truncate">{workout.name}</CardTitle>
                         {workout.description && (
-                          <p className="text-muted-foreground mt-1">{workout.description}</p>
+                          <p className="text-muted-foreground mt-1 text-sm line-clamp-2">{workout.description}</p>
                         )}
                       </div>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="self-start text-xs">
                         {workout.exercises.length} ejercicios
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     <div className="space-y-2">
-                      {workout.exercises.map((exercise, index) => (
-                        <div key={index} className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                          <span className="font-medium">{exercise.name}</span>
-                          <div className="text-sm text-muted-foreground">
+                      {workout.exercises.slice(0, 3).map((exercise, index) => (
+                        <div key={index} className="flex justify-between items-center p-2 bg-muted/50 rounded text-xs sm:text-sm">
+                          <span className="font-medium truncate flex-1 mr-2">{exercise.name}</span>
+                          <div className="text-muted-foreground whitespace-nowrap">
                             {exercise.sets}×{exercise.reps} {exercise.weight > 0 && `@ ${exercise.weight}kg`}
                           </div>
                         </div>
                       ))}
+                      {workout.exercises.length > 3 && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          +{workout.exercises.length - 3} ejercicios más
+                        </p>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-4">
+                    <p className="text-xs text-muted-foreground mt-3">
                       Creado: {new Date(workout.createdAt).toLocaleDateString()}
                     </p>
                   </CardContent>

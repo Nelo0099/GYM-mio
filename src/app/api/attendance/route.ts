@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Attendance API called - checking session...')
     const session = await getServerSession(authOptions)
 
     console.log('Attendance GET - Session:', !!session)

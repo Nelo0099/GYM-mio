@@ -74,24 +74,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F7F9FC] p-6">
-      <div className="w-full max-w-[450px] space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-[#F7F9FC] p-4 sm:p-6">
+      <div className="w-full max-w-[450px] space-y-6 sm:space-y-8">
         <div className="text-center">
-          <Link href="/" className="text-3xl font-extrabold tracking-tighter text-foreground">
+          <Link href="/" className="text-2xl sm:text-3xl font-extrabold tracking-tighter text-foreground">
             IMPULSO<span className="text-primary">FITNESS</span>
           </Link>
         </div>
 
         <Card className="rounded-[12px] border-border shadow-lg bg-white overflow-hidden">
-          <CardHeader className="pt-10 pb-6 px-10 text-center">
-            <CardTitle className="text-3xl font-extrabold text-foreground">
+          <CardHeader className="pt-6 sm:pt-10 pb-4 sm:pb-6 px-4 sm:px-10 text-center">
+            <CardTitle className="text-xl sm:text-3xl font-extrabold text-foreground">
               {isRegister ? "Únete a Impulso Fitness" : "Bienvenido de nuevo"}
             </CardTitle>
-            <CardDescription className="text-muted-foreground text-lg mt-2">
+            <CardDescription className="text-muted-foreground text-sm sm:text-lg mt-2">
               {isRegister ? "Crea tu cuenta para comenzar tu transformación." : "Ingresa tus credenciales para acceder."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-10 pb-10 space-y-6">
+          <CardContent className="px-4 sm:px-10 pb-6 sm:pb-10 space-y-4 sm:space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               {isRegister && (
                 <div className="space-y-2">
@@ -102,7 +102,7 @@ export default function LoginPage() {
                     placeholder="Tu nombre"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="rounded-[6px] h-12 bg-white border-border focus:ring-primary focus:border-primary transition-all"
+                    className="rounded-[6px] h-10 sm:h-12 bg-white border-border focus:ring-primary focus:border-primary transition-all text-sm sm:text-base"
                     required
                   />
                 </div>
@@ -115,7 +115,7 @@ export default function LoginPage() {
                   placeholder="ejemplo@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-[6px] h-12 bg-white border-border focus:ring-primary focus:border-primary transition-all"
+                  className="rounded-[6px] h-10 sm:h-12 bg-white border-border focus:ring-primary focus:border-primary transition-all text-sm sm:text-base"
                   required
                 />
               </div>
@@ -129,12 +129,12 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-[6px] h-12 bg-white border-border focus:ring-primary focus:border-primary transition-all"
+                  className="rounded-[6px] h-10 sm:h-12 bg-white border-border focus:ring-primary focus:border-primary transition-all text-sm sm:text-base"
                   required
                 />
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-[8px]">
+              <Button type="submit" disabled={loading} className="w-full h-10 sm:h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-[8px] text-sm sm:text-base">
                 {loading ? "Cargando..." : (isRegister ? "Registrarse" : "Iniciar Sesión")}
               </Button>
             </form>
