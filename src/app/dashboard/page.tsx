@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Plus, Dumbbell, Calendar, TrendingUp, Target, QrCode, Scan, LogOut } from "lucide-react"
+import { Plus, Dumbbell, Calendar, TrendingUp, Target, QrCode, Scan, LogOut, Settings, List } from "lucide-react"
 import { Html5QrcodeScanner } from "html5-qrcode"
 
 interface Workout {
@@ -263,21 +263,37 @@ export default function UserDashboardPage() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="md:col-span-4">
+          <Card className="md:col-span-2">
             <CardContent className="pt-6">
               <div className="flex justify-center">
-        <Button
-          onClick={startQrScanner}
-          className="flex items-center gap-2 px-8 py-3 text-lg"
-          size="lg"
-          disabled={status !== 'authenticated' || !session?.user?.id}
-        >
-          <Scan className="h-5 w-5" />
-          Escanear QR para Registrar Asistencia
-        </Button>
+                <Button
+                  onClick={startQrScanner}
+                  className="flex items-center gap-2 px-6 py-3 text-base w-full sm:w-auto"
+                  disabled={status !== 'authenticated' || !session?.user?.id}
+                >
+                  <Scan className="h-4 w-4" />
+                  Escanear QR
+                </Button>
               </div>
-              <p className="text-center text-sm text-muted-foreground mt-2">
-                Escanea el código QR del gimnasio para registrar tu asistencia diaria
+              <p className="text-center text-xs text-muted-foreground mt-2">
+                Registra tu asistencia diaria
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardContent className="pt-6">
+              <div className="flex justify-center">
+                <Button
+                  onClick={() => router.push('/dashboard/routines')}
+                  className="flex items-center gap-2 px-6 py-3 text-base w-full sm:w-auto"
+                >
+                  <List className="h-4 w-4" />
+                  Mis Rutinas
+                </Button>
+              </div>
+              <p className="text-center text-xs text-muted-foreground mt-2">
+                Gestiona tus rutinas de ejercicio
               </p>
             </CardContent>
           </Card>

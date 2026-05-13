@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Users, UserCheck, Settings, BarChart3, Plus, Trash2, LogOut, Mail, User, Calendar, QrCode } from "lucide-react"
+import { Users, UserCheck, Settings, BarChart3, Plus, Trash2, LogOut, Mail, User, Calendar, QrCode, Download, FileText, FileSpreadsheet } from "lucide-react"
 import { Calendar as CalendarComponent } from 'react-calendar'
 import QRCode from 'qrcode'
 import 'react-calendar/dist/Calendar.css'
@@ -293,6 +293,44 @@ export default function AdminDashboardPage() {
     }
   }
 
+  const exportAttendances = async (format: string) => {
+    if (!selectedDate) return
+
+    try {
+      const dateStr = selectedDate.toISOString().split('T')[0]
+      const response = await fetch(`/api/admin/export-attendances?date=${dateStr}&format=${format}`)
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `asistencias_${dateStr}.${format === 'excel' ? 'csv' : format === 'word' ? 'doc' : 'txt'}`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+
+        toast({
+          title: "Exportación exitosa",
+          description: `Archivo descargado como ${format.toUpperCase()}`,
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo exportar las asistencias",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Export error:", error)
+      toast({
+        title: "Error",
+        description: "Error al exportar asistencias",
+        variant: "destructive",
+      })
+    }
+  }
+
   if (status === 'loading') return (
     <div className="min-h-screen pt-24 bg-background flex items-center justify-center">
       <div className="text-center">
@@ -554,12 +592,45 @@ export default function AdminDashboardPage() {
         {selectedDate && (
           <Card className="mt-8">
             <CardHeader>
-              <CardTitle>
-                Asistencias del {selectedDate.toLocaleDateString('es-ES')}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Total de asistencias: {attendances.length}
-              </p>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>
+                    Asistencias del {selectedDate.toLocaleDateString('es-ES')}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Total de asistencias: {attendances.length}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => exportAttendances('excel')}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Excel
+                  </Button>
+                  <Button
+                    onClick={() => exportAttendances('word')}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Word
+                  </Button>
+                  <Button
+                    onClick={() => exportAttendances('txt')}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    TXT
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {attendances.length === 0 ? (

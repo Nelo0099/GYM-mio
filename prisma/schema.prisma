@@ -20,8 +20,10 @@ model User {
   createdAt   DateTime     @default(now()) @db.Timestamp(6)
 
   // Add more fields as needed for gym app
-  workouts    Workout[]
-  attendances Attendance[]
+  workouts      Workout[]
+  attendances   Attendance[]
+  profile       UserProfile?
+  weeklyRoutines WeeklyRoutine[]
 }
 
 model Workout {
@@ -42,8 +44,24 @@ model Exercise {
   sets        Int?
   reps        Int?
   weight      Float?
+  restTime    Int?     // Rest time in seconds
+  notes       String?  // Additional notes for the exercise
 
   workout     Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+}
+
+model DailyExercise {
+  id            String   @id @default(cuid())
+  dailyRoutineId String
+  name          String
+  sets          Int?
+  reps          Int?
+  weight        Float?
+  restTime      Int?     // Rest time in seconds
+  notes         String?  // Additional notes for the exercise
+  order         Int      @default(0) // Order in the routine
+
+  dailyRoutine  DailyRoutine @relation(fields: [dailyRoutineId], references: [id], onDelete: Cascade)
 }
 
 model Attendance {
@@ -56,4 +74,45 @@ model Attendance {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date]) // Un usuario solo puede tener una asistencia por día
+}
+
+model UserProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  level           String   @default("beginner") // beginner, intermediate, advanced
+  goals           String[] // ["weight_loss", "muscle_gain", "strength", "endurance", "maintenance"]
+  availableDays   Int      @default(3) // days per week available for training
+  sessionDuration Int      @default(60) // minutes per session
+  equipment       String[] // ["dumbbells", "barbell", "machines", "bodyweight", "resistance_bands"]
+  createdAt       DateTime @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime @updatedAt @db.Timestamp(6)
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WeeklyRoutine {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  type        String   @default("custom") // "auto" or "custom"
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @updatedAt @db.Timestamp(6)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyRoutines DailyRoutine[]
+}
+
+model DailyRoutine {
+  id              String   @id @default(cuid())
+  weeklyRoutineId String
+  dayOfWeek       Int      // 0-6 (Sunday-Saturday)
+  name            String   // e.g., "Full Body Day 1", "Upper Body"
+  duration        Int?     // Estimated duration in minutes
+  createdAt       DateTime @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime @updatedAt @db.Timestamp(6)
+
+  weeklyRoutine   WeeklyRoutine @relation(fields: [weeklyRoutineId], references: [id], onDelete: Cascade)
+  exercises       DailyExercise[]
 }
