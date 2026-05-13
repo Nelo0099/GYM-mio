@@ -228,6 +228,73 @@ export default function RoutinesPage() {
     }
   }
 
+  const deleteAllRoutines = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar TODAS tus rutinas semanales? Esta acción no se puede deshacer.')) {
+      return
+    }
+
+    try {
+      const deletePromises = routines.map(routine =>
+        fetch(`/api/user/routines?id=${routine.id}`, { method: 'DELETE' })
+      )
+
+      const results = await Promise.all(deletePromises)
+      const successCount = results.filter(r => r.ok).length
+
+      if (successCount === routines.length) {
+        toast({
+          title: "Rutinas eliminadas",
+          description: `Se eliminaron ${routines.length} rutinas correctamente`,
+        })
+        fetchRoutines()
+      } else {
+        toast({
+          title: "Error parcial",
+          description: `Se eliminaron ${successCount} de ${routines.length} rutinas`,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Delete all routines error:', error)
+      toast({
+        title: "Error",
+        description: "Error al eliminar las rutinas",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const assignRoutineToDay = async (routineId: string, dayOfWeek: number) => {
+    try {
+      // First, unassign from any existing day
+      const existingAssignments = routines.flatMap(r =>
+        r.dailyRoutines.filter(dr => dr.dayOfWeek === dayOfWeek)
+      )
+
+      if (existingAssignments.length > 0) {
+        toast({
+          title: "Día ocupado",
+          description: "Este día ya tiene una rutina asignada. Primero desasigna la otra rutina.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // For now, just show a message - full implementation would need backend support
+      toast({
+        title: "Función en desarrollo",
+        description: `Rutina asignada al día ${dayNames[dayOfWeek]}`,
+      })
+    } catch (error) {
+      console.error('Assign routine error:', error)
+      toast({
+        title: "Error",
+        description: "Error al asignar la rutina",
+        variant: "destructive",
+      })
+    }
+  }
+
   if (status === 'loading') return (
     <div className="min-h-screen pt-24 bg-background flex items-center justify-center">
       <div className="text-center">
@@ -245,7 +312,18 @@ export default function RoutinesPage() {
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Mis Rutinas</h1>
             <p className="text-muted-foreground text-sm sm:text-base">Gestiona tus rutinas de ejercicio semanales</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {routines.length > 0 && (
+              <Button
+                onClick={deleteAllRoutines}
+                variant="destructive"
+                size="sm"
+                className="text-sm"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar Todas
+              </Button>
+            )}
             <Button onClick={() => router.push('/dashboard')} variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
@@ -382,14 +460,35 @@ export default function RoutinesPage() {
                      </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-2">
-                      {routine.dailyRoutines.map((day) => (
-                        <div key={day.dayOfWeek} className="p-3 border rounded-lg">
-                          <h4 className="font-medium text-sm">{dayNames[day.dayOfWeek]}</h4>
-                          <p className="text-xs text-muted-foreground">{day.name}</p>
-                          <p className="text-xs text-muted-foreground">{day.exercises.length} ejercicios</p>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Asignar rutina semanal a día específico:</Label>
+                        <select
+                          value={routine.assignedDay || ''}
+                          onChange={(e) => assignRoutineToDay(routine.id, e.target.value ? parseInt(e.target.value) : null)}
+                          className="text-sm p-2 border rounded bg-background"
+                        >
+                          <option value="">Sin asignar</option>
+                          {dayNames.map((dayName, index) => (
+                            <option key={index} value={index}>
+                              {dayName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium text-sm mb-3">Días de la semana:</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-2">
+                          {routine.dailyRoutines.map((day) => (
+                            <div key={day.dayOfWeek} className="p-3 border rounded-lg">
+                              <h5 className="font-medium text-sm">{dayNames[day.dayOfWeek]}</h5>
+                              <p className="text-xs text-muted-foreground">{day.name}</p>
+                              <p className="text-xs text-muted-foreground">{day.exercises.length} ejercicios</p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -441,23 +540,120 @@ export default function RoutinesPage() {
 
         {/* Profile Dialog */}
         <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-md mx-4 p-4 sm:p-6">
+          <DialogContent className="w-[95vw] max-w-lg mx-4 p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Configurar Perfil de Entrenamiento</DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">Configurar Perfil de Entrenamiento</DialogTitle>
+              <p className="text-sm text-muted-foreground">Esta configuración determina cómo se generan tus rutinas automáticas</p>
             </DialogHeader>
             {profile && (
               <div className="space-y-4">
                 <div>
-                  <Label>Nivel de experiencia</Label>
+                  <Label className="text-sm font-medium">Nivel de experiencia</Label>
                   <select
                     value={profile.level}
                     onChange={(e) => setProfile({ ...profile, level: e.target.value })}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md mt-1"
                   >
-                    <option value="beginner">Principiante</option>
-                    <option value="intermediate">Intermedio</option>
-                    <option value="advanced">Avanzado</option>
+                    <option value="beginner">Principiante (0-6 meses)</option>
+                    <option value="intermediate">Intermedio (6-18 meses)</option>
+                    <option value="advanced">Avanzado (+18 meses)</option>
                   </select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Objetivos principales</Label>
+                  <div className="space-y-2 mt-2">
+                    {['weight_loss', 'muscle_gain', 'strength', 'endurance', 'maintenance'].map(goal => (
+                      <label key={goal} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={profile.goals.includes(goal)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setProfile({ ...profile, goals: [...profile.goals, goal] })
+                            } else {
+                              setProfile({ ...profile, goals: profile.goals.filter(g => g !== goal) })
+                            }
+                          }}
+                        />
+                        {goal === 'weight_loss' ? 'Pérdida de peso' :
+                         goal === 'muscle_gain' ? 'Ganancia muscular' :
+                         goal === 'strength' ? 'Fuerza máxima' :
+                         goal === 'endurance' ? 'Resistencia' : 'Mantenimiento'}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Días disponibles por semana</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="7"
+                    value={profile.availableDays}
+                    onChange={(e) => setProfile({ ...profile, availableDays: parseInt(e.target.value) })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Duración por sesión (minutos)</Label>
+                  <Input
+                    type="number"
+                    min="30"
+                    max="120"
+                    value={profile.sessionDuration}
+                    onChange={(e) => setProfile({ ...profile, sessionDuration: parseInt(e.target.value) })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Equipamiento disponible</Label>
+                  <div className="space-y-2 mt-2">
+                    {['dumbbells', 'barbell', 'machines', 'bodyweight', 'resistance_bands'].map(equip => (
+                      <label key={equip} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={profile.equipment.includes(equip)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setProfile({ ...profile, equipment: [...profile.equipment, equip] })
+                            } else {
+                              setProfile({ ...profile, equipment: profile.equipment.filter(e => e !== equip) })
+                            }
+                          }}
+                        />
+                        {equip === 'dumbbells' ? 'Mancuernas' :
+                         equip === 'barbell' ? 'Barra' :
+                         equip === 'machines' ? 'Máquinas' :
+                         equip === 'bodyweight' ? 'Peso corporal' : 'Bandas elásticas'}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Días de descanso</Label>
+                  <div className="space-y-2 mt-2">
+                    {dayNames.map((dayName, index) => (
+                      <label key={index} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={profile.restDays.includes(index)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setProfile({ ...profile, restDays: [...profile.restDays, index] })
+                            } else {
+                              setProfile({ ...profile, restDays: profile.restDays.filter(d => d !== index) })
+                            }
+                          }}
+                        />
+                        {dayName}
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
