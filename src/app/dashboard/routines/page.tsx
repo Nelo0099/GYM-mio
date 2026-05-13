@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Plus, Calendar, Dumbbell, Settings, ArrowLeft, Eye, Zap } from "lucide-react"
+import { Plus, Calendar, Dumbbell, Settings, ArrowLeft, Eye, Zap, Trash2 } from "lucide-react"
 
 interface UserProfile {
   id: string
@@ -65,6 +65,7 @@ export default function RoutinesPage() {
   const [newRoutine, setNewRoutine] = useState({
     name: '',
     description: '',
+    assignToDay: null, // null means create full week, number means assign to specific day
     dailyRoutines: Array.from({ length: 7 }, (_, i) => ({
       dayOfWeek: i,
       name: `${dayNames[i]} - Descanso`,
@@ -109,6 +110,30 @@ export default function RoutinesPage() {
       return
     }
 
+    let dailyRoutinesToSend = newRoutine.dailyRoutines.filter(day =>
+      day.exercises.length > 0 || !day.name.includes('Descanso')
+    )
+
+    // If assigning to specific day, only send that day's routine
+    if (newRoutine.assignToDay !== null) {
+      const specificDay = newRoutine.dailyRoutines[newRoutine.assignToDay]
+      if (specificDay.exercises.length > 0) {
+        dailyRoutinesToSend = [{
+          dayOfWeek: newRoutine.assignToDay,
+          name: specificDay.name,
+          duration: specificDay.duration,
+          exercises: specificDay.exercises
+        }]
+      } else {
+        toast({
+          title: "Error",
+          description: "El día seleccionado no tiene ejercicios",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
     const response = await fetch('/api/user/routines', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -116,9 +141,7 @@ export default function RoutinesPage() {
         name: newRoutine.name,
         description: newRoutine.description,
         type: 'custom',
-        dailyRoutines: newRoutine.dailyRoutines.filter(day =>
-          day.exercises.length > 0 || !day.name.includes('Descanso')
-        )
+        dailyRoutines: dailyRoutinesToSend
       }),
     })
 
@@ -167,6 +190,39 @@ export default function RoutinesPage() {
       toast({
         title: "Error",
         description: "No se pudo actualizar el perfil",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const deleteRoutine = async (routineId: string, routineName: string) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar la rutina "${routineName}"? Esta acción no se puede deshacer.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/user/routines?id=${routineId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Rutina eliminada",
+          description: "La rutina ha sido eliminada correctamente",
+        })
+        fetchRoutines()
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar la rutina",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Delete routine error:', error)
+      toast({
+        title: "Error",
+        description: "Error al eliminar la rutina",
         variant: "destructive",
       })
     }
@@ -235,6 +291,28 @@ export default function RoutinesPage() {
                   />
                 </div>
 
+                <div>
+                  <Label>Asignar a día específico (opcional)</Label>
+                  <select
+                    value={newRoutine.assignToDay || ''}
+                    onChange={(e) => setNewRoutine(prev => ({
+                      ...prev,
+                      assignToDay: e.target.value ? parseInt(e.target.value) : null
+                    }))}
+                    className="w-full p-2 border rounded-md mt-2"
+                  >
+                    <option value="">Crear rutina semanal completa</option>
+                    {dayNames.map((dayName, index) => (
+                      <option key={index} value={index}>
+                        Asignar solo a {dayName}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Si seleccionas un día, solo se creará la rutina para ese día específico
+                  </p>
+                </div>
+
                 <div className="flex gap-2 pt-4">
                   <Button onClick={handleCreateCustomRoutine} className="flex-1">
                     Crear Rutina
@@ -270,7 +348,7 @@ export default function RoutinesPage() {
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-xl">{routine.name}</CardTitle>
+                        <CardTitle className="text-lg">{routine.name}</CardTitle>
                         {routine.description && (
                           <p className="text-muted-foreground mt-1">{routine.description}</p>
                         )}
@@ -282,6 +360,26 @@ export default function RoutinesPage() {
                             {routine.dailyRoutines.length} días
                           </Badge>
                         </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => setSelectedRoutine(routine)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalles
+                        </Button>
+                        <Button
+                          onClick={() => deleteRoutine(routine.id, routine.name)}
+                          variant="destructive"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
                       </div>
                       <Button
                         onClick={() => setSelectedRoutine(routine)}

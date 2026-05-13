@@ -44,10 +44,13 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
+      console.log('No session user ID found')
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    const { name, description, type, dailyRoutines } = await request.json()
+    const body = await request.json()
+    console.log('Request body:', body)
+    const { name, description, type, dailyRoutines } = body
 
     try {
       // If it's an auto-generated routine, create based on user profile
@@ -57,9 +60,11 @@ export async function POST(request: NextRequest) {
           profile = await prisma.userProfile.findUnique({
             where: { userId: session.user.id }
           })
+          console.log('Found existing profile:', !!profile)
 
           // If no profile exists, create one with defaults
           if (!profile) {
+            console.log('Creating new profile for user:', session.user.id)
             profile = await prisma.userProfile.create({
               data: {
                 userId: session.user.id,
@@ -71,10 +76,10 @@ export async function POST(request: NextRequest) {
                 restDays: [0, 6]
               }
             })
-            console.log('Created default profile for user:', session.user.id)
+            console.log('Created default profile:', profile.id)
           }
         } catch (profileError) {
-          console.log('Profile table not found or error, using fallback defaults')
+          console.log('Profile table error, using fallback defaults:', profileError.message)
           profile = {
             level: 'beginner',
             goals: ['weight_loss'],
@@ -86,7 +91,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Generate auto routine based on profile
+        console.log('Generating auto routine with profile:', profile)
         const autoRoutine = generateAutoRoutine(profile)
+        console.log('Generated auto routine:', autoRoutine.name)
         return NextResponse.json(autoRoutine)
       }
 
@@ -173,6 +180,38 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Create routine error:", error)
+    return NextResponse.json("Internal server error", { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json("Unauthorized", { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const routineId = searchParams.get('id')
+
+    if (!routineId) {
+      return NextResponse.json("Missing routine ID", { status: 400 })
+    }
+
+    try {
+      // Delete the routine (cascade will delete daily routines and exercises)
+      await prisma.weeklyRoutine.delete({
+        where: { id: routineId, userId: session.user.id }
+      })
+
+      return NextResponse.json({ message: "Routine deleted successfully" })
+    } catch (dbError) {
+      console.error('Database error deleting routine:', dbError)
+      return NextResponse.json("Database error", { status: 500 })
+    }
+  } catch (error) {
+    console.error("Delete routine error:", error)
     return NextResponse.json("Internal server error", { status: 500 })
   }
 }
