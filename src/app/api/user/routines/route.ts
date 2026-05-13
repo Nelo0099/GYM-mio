@@ -57,8 +57,24 @@ export async function POST(request: NextRequest) {
           profile = await prisma.userProfile.findUnique({
             where: { userId: session.user.id }
           })
+
+          // If no profile exists, create one with defaults
+          if (!profile) {
+            profile = await prisma.userProfile.create({
+              data: {
+                userId: session.user.id,
+                level: 'beginner',
+                goals: ['weight_loss'],
+                availableDays: 5,
+                sessionDuration: 60,
+                equipment: ['bodyweight'],
+                restDays: [0, 6]
+              }
+            })
+            console.log('Created default profile for user:', session.user.id)
+          }
         } catch (profileError) {
-          console.log('Profile table not found, using defaults')
+          console.log('Profile table not found or error, using fallback defaults')
           profile = {
             level: 'beginner',
             goals: ['weight_loss'],
@@ -161,80 +177,155 @@ export async function POST(request: NextRequest) {
   }
 }
 
+const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+
+const muscleGroupRoutines = {
+  0: { // Domingo - Descanso (generalmente)
+    name: 'Descanso',
+    exercises: []
+  },
+  1: { // Lunes - Pecho
+    name: 'Pecho',
+    exercises: [
+      { name: 'Press de banca', sets: 4, reps: '8-10', weight: 0, restTime: 120 },
+      { name: 'Press inclinado con mancuernas', sets: 3, reps: '10', weight: 0, restTime: 90 },
+      { name: 'Aperturas con mancuernas', sets: 3, reps: '12', weight: 0, restTime: 90 },
+      { name: 'Fondos en paralelas', sets: 3, reps: '8-12', weight: 0, restTime: 90 },
+      { name: 'Cruces en polea', sets: 3, reps: '12-15', weight: 0, restTime: 90 }
+    ]
+  },
+  2: { // Martes - Espalda
+    name: 'Espalda',
+    exercises: [
+      { name: 'Dominadas o jalón al pecho', sets: 4, reps: '8-10', weight: 0, restTime: 120 },
+      { name: 'Remo con barra', sets: 4, reps: '8', weight: 0, restTime: 120 },
+      { name: 'Remo en máquina', sets: 3, reps: '10', weight: 0, restTime: 90 },
+      { name: 'Peso muerto rumano', sets: 3, reps: '8', weight: 0, restTime: 90 },
+      { name: 'Pull-over en polea', sets: 3, reps: '12', weight: 0, restTime: 90 }
+    ]
+  },
+  3: { // Miércoles - Piernas
+    name: 'Piernas',
+    exercises: [
+      { name: 'Sentadilla', sets: 4, reps: '8', weight: 0, restTime: 150 },
+      { name: 'Prensa de piernas', sets: 4, reps: '10', weight: 0, restTime: 120 },
+      { name: 'Zancadas', sets: 3, reps: '12 por pierna', weight: 0, restTime: 90 },
+      { name: 'Curl femoral', sets: 3, reps: '12', weight: 0, restTime: 90 },
+      { name: 'Extensiones de cuádriceps', sets: 3, reps: '15', weight: 0, restTime: 90 },
+      { name: 'Elevación de gemelos', sets: 4, reps: '15-20', weight: 0, restTime: 60 }
+    ]
+  },
+  4: { // Jueves - Hombros
+    name: 'Hombros',
+    exercises: [
+      { name: 'Press militar', sets: 4, reps: '8-10', weight: 0, restTime: 120 },
+      { name: 'Elevaciones laterales', sets: 4, reps: '12-15', weight: 0, restTime: 90 },
+      { name: 'Pájaros o elevación posterior', sets: 3, reps: '12', weight: 0, restTime: 90 },
+      { name: 'Remo al mentón', sets: 3, reps: '10', weight: 0, restTime: 90 },
+      { name: 'Encogimientos de trapecio', sets: 3, reps: '12', weight: 0, restTime: 90 }
+    ]
+  },
+  5: { // Viernes - Brazos
+    name: 'Brazos',
+    exercises: [
+      { name: 'Curl con barra (Bíceps)', sets: 4, reps: '10', weight: 0, restTime: 90 },
+      { name: 'Curl martillo', sets: 3, reps: '12', weight: 0, restTime: 90 },
+      { name: 'Curl en banco inclinado', sets: 3, reps: '10', weight: 0, restTime: 90 },
+      { name: 'Press cerrado (Tríceps)', sets: 4, reps: '8-10', weight: 0, restTime: 90 },
+      { name: 'Extensión en polea', sets: 3, reps: '12', weight: 0, restTime: 90 },
+      { name: 'Fondos en banco', sets: 3, reps: '15', weight: 0, restTime: 90 }
+    ]
+  },
+  6: { // Sábado - Full Body (opcional)
+    name: 'Full Body',
+    exercises: [
+      { name: 'Peso muerto', sets: 3, reps: '5', weight: 0, restTime: 150 },
+      { name: 'Press de banca', sets: 3, reps: '8', weight: 0, restTime: 120 },
+      { name: 'Remo con mancuerna', sets: 3, reps: '10', weight: 0, restTime: 120 },
+      { name: 'Sentadilla frontal', sets: 3, reps: '8', weight: 0, restTime: 120 },
+      { name: 'Plancha', sets: 3, reps: '45-60s', weight: 0, restTime: 60 }
+    ]
+  }
+}
+
 function generateAutoRoutine(profile: any) {
-  const { level, goals, availableDays, sessionDuration, equipment } = profile
+  const { level, goals, sessionDuration, equipment, restDays = [0, 6] } = profile
+  // Calculate available days as total days minus rest days
+  const totalDays = 7
+  const availableDays = totalDays - restDays.length
   const hasWeights = equipment.includes('dumbbells') || equipment.includes('barbell')
   const hasMachines = equipment.includes('machines')
-
-  // Base exercises based on equipment
-  const baseExercises = {
-    bodyweight: ['Push-ups', 'Squats', 'Lunges', 'Planks', 'Burpees'],
-    weights: ['Bench Press', 'Squats', 'Deadlifts', 'Rows', 'Shoulder Press'],
-    machines: ['Lat Pulldown', 'Leg Press', 'Chest Press', 'Seated Row', 'Leg Curl']
-  }
-
-  // Select exercises based on available equipment
-  let availableExercises = [...baseExercises.bodyweight]
-  if (hasWeights) availableExercises.push(...baseExercises.weights)
-  if (hasMachines) availableExercises.push(...baseExercises.machines)
 
   // Generate routine based on level and goals
   const routine = {
     name: `Rutina ${level === 'beginner' ? 'Principiante' : level === 'intermediate' ? 'Intermedia' : 'Avanzada'} - ${goals.join(', ')}`,
-    description: `Rutina generada automáticamente según tu perfil`,
+    description: `Rutina generada automáticamente según tu perfil. Días de descanso: ${restDays.map(d => dayNames[d]).join(', ')}`,
     type: 'auto',
     dailyRoutines: []
   }
 
-  // Create daily routines
-  for (let day = 0; day < availableDays; day++) {
-    const dayName = getDayName(day)
-    const exercises = generateDayExercises(availableExercises, level, sessionDuration, goals)
+  // Create daily routines for all 7 days
+  for (let day = 0; day < 7; day++) {
+    if (restDays.includes(day)) {
+      // Rest day
+      routine.dailyRoutines.push({
+        dayOfWeek: day,
+        name: `${dayNames[day]} - Descanso`,
+        duration: 0,
+        exercises: []
+      })
+    } else {
+      // Training day - use predefined muscle group routines
+      const dayRoutine = muscleGroupRoutines[day] || muscleGroupRoutines[1] // fallback to chest
+      const adjustedExercises = adjustExercisesForLevel(dayRoutine.exercises, level, goals)
 
-    routine.dailyRoutines.push({
-      dayOfWeek: day,
-      name: `${dayName} - ${level === 'beginner' ? 'Full Body' : day % 2 === 0 ? 'Upper Body' : 'Lower Body'}`,
-      duration: sessionDuration,
-      exercises: exercises.map((ex, index) => ({ ...ex, order: index }))
-    })
+      routine.dailyRoutines.push({
+        dayOfWeek: day,
+        name: `${dayNames[day]} - ${dayRoutine.name}`,
+        duration: sessionDuration,
+        exercises: adjustedExercises.map((ex, index) => ({ ...ex, order: index }))
+      })
+    }
   }
 
   return routine
 }
 
-function getDayName(dayIndex: number): string {
-  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-  return days[dayIndex]
-}
+function adjustExercisesForLevel(exercises: any[], level: string, goals: string[]) {
+  return exercises.map(exercise => {
+    let sets = exercise.sets
+    let reps = exercise.reps
+    let restTime = exercise.restTime
 
-function generateDayExercises(exercises: string[], level: string, duration: number, goals: string[]) {
-  const exerciseCount = level === 'beginner' ? 4 : level === 'intermediate' ? 6 : 8
-  const selectedExercises = exercises.sort(() => 0.5 - Math.random()).slice(0, exerciseCount)
-
-  return selectedExercises.map(exercise => {
-    let sets, reps, weight
-
+    // Adjust based on level
     if (level === 'beginner') {
-      sets = 3
-      reps = goals.includes('strength') ? 8 : 12
-      weight = goals.includes('strength') ? 20 : 0
+      sets = Math.max(3, sets - 1) // Reduce sets for beginners
+      restTime = Math.min(restTime, 90) // Shorter rest for beginners
     } else if (level === 'intermediate') {
-      sets = 4
-      reps = goals.includes('strength') ? 6 : 10
-      weight = goals.includes('strength') ? 40 : 10
-    } else {
-      sets = 5
-      reps = goals.includes('strength') ? 5 : 8
-      weight = goals.includes('strength') ? 60 : 20
+      // Keep original values
+    } else if (level === 'advanced') {
+      sets = sets + 1 // Add sets for advanced
+      restTime = Math.max(restTime, 150) // Longer rest for advanced
+    }
+
+    // Adjust based on goals
+    if (goals.includes('strength')) {
+      reps = Math.floor(parseInt(reps) * 0.7) // Fewer reps for strength
+      restTime = Math.max(restTime, 120) // Longer rest for strength
+    } else if (goals.includes('weight_loss')) {
+      restTime = Math.min(restTime, 60) // Shorter rest for cardio-like training
     }
 
     return {
-      name: exercise,
+      ...exercise,
       sets,
       reps,
-      weight,
-      restTime: level === 'beginner' ? 90 : level === 'intermediate' ? 120 : 150,
-      notes: goals.includes('weight_loss') ? 'Enfócate en la técnica' : 'Mantén buena forma'
+      restTime,
+      notes: goals.includes('weight_loss') ?
+        'Enfócate en la técnica y controla el tempo' :
+        goals.includes('strength') ?
+        'Mantén buena forma y usa pesos desafiantes' :
+        'Concéntrate en la ejecución perfecta'
     }
   })
 }
