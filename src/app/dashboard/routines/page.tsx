@@ -378,17 +378,8 @@ export default function RoutinesPage() {
                           <Trash2 className="h-4 w-4 mr-2" />
                           Eliminar
                         </Button>
-                      </div>
-                    </div>
-                    <Button
-                        onClick={() => setSelectedRoutine(routine)}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver Detalles
-                      </Button>
-                    </div>
+                       </div>
+                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-2">
