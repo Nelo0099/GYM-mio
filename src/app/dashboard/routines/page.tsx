@@ -380,8 +380,7 @@ export default function RoutinesPage() {
                         </Button>
                       </div>
                     </div>
-                      </div>
-                      <Button
+                    <Button
                         onClick={() => setSelectedRoutine(routine)}
                         variant="outline"
                         size="sm"
