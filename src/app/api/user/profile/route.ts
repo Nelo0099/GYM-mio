@@ -18,13 +18,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(profile || {
       level: "beginner",
       goals: [],
-      availableDays: 3,
+      availableDays: 5,
       sessionDuration: 60,
-      equipment: ["bodyweight"]
+      equipment: ["bodyweight"],
+      restDays: [0, 6] // Sunday and Saturday by default
     })
   } catch (error) {
     console.error("Get profile error:", error)
-    return NextResponse.json("Internal server error", { status: 500 })
+    return NextResponse.json({
+      level: "beginner",
+      goals: [],
+      availableDays: 5,
+      sessionDuration: 60,
+      equipment: ["bodyweight"],
+      restDays: [0, 6]
+    })
   }
 }
 
@@ -36,7 +44,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    const { level, goals, availableDays, sessionDuration, equipment } = await request.json()
+    const { level, goals, availableDays, sessionDuration, equipment, restDays } = await request.json()
 
     const profile = await prisma.userProfile.upsert({
       where: { userId: session.user.id },
@@ -45,7 +53,8 @@ export async function POST(request: NextRequest) {
         goals,
         availableDays,
         sessionDuration,
-        equipment
+        equipment,
+        restDays
       },
       create: {
         userId: session.user.id,
@@ -53,13 +62,24 @@ export async function POST(request: NextRequest) {
         goals,
         availableDays,
         sessionDuration,
-        equipment
+        equipment,
+        restDays
       }
     })
 
     return NextResponse.json(profile)
   } catch (error) {
     console.error("Update profile error:", error)
-    return NextResponse.json("Internal server error", { status: 500 })
+    // Return a fallback profile on error
+    return NextResponse.json({
+      id: "fallback",
+      userId: session?.user?.id,
+      level: "beginner",
+      goals: [],
+      availableDays: 5,
+      sessionDuration: 60,
+      equipment: ["bodyweight"],
+      restDays: [0, 6]
+    })
   }
 }

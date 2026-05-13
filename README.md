@@ -226,6 +226,49 @@ Después del despliegue, verifica:
 - **UI:** Tailwind CSS, shadcn/ui
 - **QR:** QRCode.js, html5-qrcode
 
+## 🔧 Solución de Problemas
+
+### Error 500 en APIs de Rutinas
+
+Si ves errores 500 al crear rutinas, significa que faltan las nuevas tablas en la base de datos.
+
+**Solución:**
+
+1. **Verificar estado de la base de datos:**
+   ```javascript
+   // Ejecuta en la consola del navegador en /dashboard
+   fetch('/api/admin/status').then(r => r.json()).then(d => console.log(d))
+   ```
+
+2. **Si faltan tablas, ejecutar migración:**
+   ```javascript
+   // Ejecuta en la consola del navegador
+   fetch('/api/admin/migrate', { method: 'POST' })
+     .then(r => r.json())
+     .then(d => console.log('Migración completada:', d))
+   ```
+
+3. **Probar todas las APIs:**
+   ```javascript
+   // Copia y pega todo el contenido de test-apis.js en la consola
+   ```
+
+### Tablas Requeridas
+
+Las siguientes tablas deben existir:
+- `UserProfile` - Perfiles de usuario
+- `WeeklyRoutine` - Rutinas semanales
+- `DailyRoutine` - Rutinas diarias
+- `DailyExercise` - Ejercicios diarios
+
+### Comando de Migración Local
+
+Si tienes acceso local a la base de datos:
+```bash
+npx prisma generate
+npx prisma db push
+```
+
 ## 📱 Demo
 
 - **URL:** [https://tu-dominio.vercel.app](https://tu-dominio.vercel.app)
