@@ -84,6 +84,7 @@ model UserProfile {
   availableDays   Int      @default(3) // days per week available for training
   sessionDuration Int      @default(60) // minutes per session
   equipment       String[] // ["dumbbells", "barbell", "machines", "bodyweight", "resistance_bands"]
+  restDays        Int[]    @default([0, 6]) // days of week to rest [0=Sunday, 6=Saturday]
   createdAt       DateTime @default(now()) @db.Timestamp(6)
   updatedAt       DateTime @updatedAt @db.Timestamp(6)
 

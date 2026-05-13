@@ -103,6 +103,43 @@ export default function UserDashboardPage() {
     }
   }
 
+  const handleCreateAutoRoutine = async () => {
+    try {
+      const response = await fetch('/api/user/routines', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'auto'
+        }),
+      })
+
+      if (response.ok) {
+        const routine = await response.json()
+        toast({
+          title: "Rutina automática creada",
+          description: `Se creó "${routine.name}" basada en tu perfil`,
+        })
+        setIsCreateDialogOpen(false)
+        // Redirect to routines page
+        router.push('/dashboard/routines')
+      } else {
+        const error = await response.text()
+        toast({
+          title: "Error",
+          description: error || "No se pudo crear la rutina automática",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Auto routine creation error:', error)
+      toast({
+        title: "Error",
+        description: "Error al crear rutina automática",
+        variant: "destructive",
+      })
+    }
+  }
+
   const addExercise = () => {
     setNewWorkout(prev => ({
       ...prev,
@@ -362,13 +399,13 @@ export default function UserDashboardPage() {
           </Card>
         </div>
 
-        {/* Create Workout Button */}
+        {/* Create Routine Button */}
         <div className="mb-6">
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2 w-full sm:w-auto text-sm">
                 <Plus className="h-4 w-4" />
-                Crear Nueva Rutina
+                {workouts.length === 0 ? 'Crear Primera Rutina' : 'Crear Nueva Rutina'}
               </Button>
             </DialogTrigger>
             <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto mx-4 p-4 sm:p-6">
@@ -412,27 +449,27 @@ export default function UserDashboardPage() {
                         <div className="sm:col-span-1">
                           <Input
                             type="number"
-                            placeholder="Sets"
-                            value={exercise.sets}
-                            onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value))}
+                            placeholder="Series"
+                            value={exercise.sets || ''}
+                            onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value) || 0)}
                             className="text-sm"
                           />
                         </div>
                         <div className="sm:col-span-1">
                           <Input
                             type="number"
-                            placeholder="Reps"
-                            value={exercise.reps}
-                            onChange={(e) => updateExercise(index, 'reps', parseInt(e.target.value))}
+                            placeholder="Repeticiones"
+                            value={exercise.reps || ''}
+                            onChange={(e) => updateExercise(index, 'reps', parseInt(e.target.value) || 0)}
                             className="text-sm"
                           />
                         </div>
                         <div className="flex gap-1 sm:col-span-1">
                           <Input
                             type="number"
-                            placeholder="Peso"
-                            value={exercise.weight}
-                            onChange={(e) => updateExercise(index, 'weight', parseFloat(e.target.value))}
+                            placeholder="Peso (kg)"
+                            value={exercise.weight || ''}
+                            onChange={(e) => updateExercise(index, 'weight', parseFloat(e.target.value) || 0)}
                             className="text-sm flex-1"
                           />
                           {newWorkout.exercises.length > 1 && (
@@ -460,13 +497,17 @@ export default function UserDashboardPage() {
                   </Button>
                 </div>
 
-                <div className="flex gap-2 pt-4">
+                <div className="flex flex-col sm:flex-row gap-2 pt-4">
                   <Button onClick={handleCreateWorkout} className="flex-1">
-                    Crear Rutina
+                    Crear Rutina Personalizada
+                  </Button>
+                  <Button onClick={handleCreateAutoRoutine} variant="outline" className="flex-1">
+                    Crear Rutina Automática
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setIsCreateDialogOpen(false)}
+                    className="sm:flex-none"
                   >
                     Cancelar
                   </Button>
@@ -487,9 +528,6 @@ export default function UserDashboardPage() {
                 <p className="text-muted-foreground text-sm sm:text-base mb-4 px-2">
                   Crea tu primera rutina para comenzar tu transformación
                 </p>
-                <Button onClick={() => setIsCreateDialogOpen(true)} className="w-full sm:w-auto">
-                  Crear Primera Rutina
-                </Button>
               </CardContent>
             </Card>
           ) : (
