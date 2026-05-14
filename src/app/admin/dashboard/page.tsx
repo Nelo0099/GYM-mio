@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Users, UserCheck, Settings, BarChart3, Plus, Trash2, LogOut, Mail, User, Calendar, QrCode, Download, FileText, FileSpreadsheet } from "lucide-react"
+import { Users, UserCheck, Settings, BarChart3, Plus, Trash2, LogOut, Mail, User, Calendar, QrCode, Download, FileText, FileSpreadsheet, Eye } from "lucide-react"
 import { Calendar as CalendarComponent } from 'react-calendar'
 import QRCode from 'qrcode'
 import 'react-calendar/dist/Calendar.css'
@@ -405,8 +405,8 @@ export default function AdminDashboardPage() {
           </Card>
         </div>
 
-        {/* Create User Button */}
-        <div className="mb-6">
+        {/* Action Buttons */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-3">
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2 w-full sm:w-auto text-sm">
@@ -482,6 +482,14 @@ export default function AdminDashboardPage() {
               </div>
             </DialogContent>
           </Dialog>
+          <Button
+            onClick={() => router.push('/dashboard/faceid')}
+            className="flex items-center gap-2 w-full sm:w-auto text-sm"
+            variant="outline"
+          >
+            <Eye className="h-4 w-4" />
+            Face ID
+          </Button>
         </div>
 
         {/* Users Management */}
