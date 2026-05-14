@@ -20,6 +20,30 @@ interface UserProfile {
   availableDays: number
   sessionDuration: number
   equipment: string[]
+  restDays: number[]
+}
+
+interface RoutineExerciseInput {
+  name: string
+  sets?: number
+  reps?: number
+  weight?: number
+  restTime?: number
+  notes?: string
+}
+
+interface RoutineDayInput {
+  dayOfWeek: number
+  name: string
+  duration: number
+  exercises: RoutineExerciseInput[]
+}
+
+interface NewRoutineForm {
+  name: string
+  description: string
+  assignToDay: number | null
+  dailyRoutines: RoutineDayInput[]
 }
 
 interface DailyExercise {
@@ -49,9 +73,22 @@ interface WeeklyRoutine {
   isActive: boolean
   createdAt: string
   dailyRoutines: DailyRoutine[]
+  assignedDay?: number | null
 }
 
 const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+
+const createEmptyRoutineForm = (): NewRoutineForm => ({
+  name: '',
+  description: '',
+  assignToDay: null,
+  dailyRoutines: Array.from({ length: 7 }, (_, i) => ({
+    dayOfWeek: i,
+    name: `${dayNames[i]} - Descanso`,
+    duration: 60,
+    exercises: [],
+  })),
+})
 
 export default function RoutinesPage() {
   const { data: session, status } = useSession()
@@ -62,17 +99,7 @@ export default function RoutinesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [selectedRoutine, setSelectedRoutine] = useState<WeeklyRoutine | null>(null)
-  const [newRoutine, setNewRoutine] = useState({
-    name: '',
-    description: '',
-    assignToDay: null, // null means create full week, number means assign to specific day
-    dailyRoutines: Array.from({ length: 7 }, (_, i) => ({
-      dayOfWeek: i,
-      name: `${dayNames[i]} - Descanso`,
-      duration: 60,
-      exercises: []
-    }))
-  })
+  const [newRoutine, setNewRoutine] = useState<NewRoutineForm>(createEmptyRoutineForm)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -151,16 +178,7 @@ export default function RoutinesPage() {
         description: "Tu rutina semanal ha sido guardada",
       })
       setIsCreateDialogOpen(false)
-      setNewRoutine({
-        name: '',
-        description: '',
-        dailyRoutines: Array.from({ length: 7 }, (_, i) => ({
-          dayOfWeek: i,
-          name: `${dayNames[i]} - Descanso`,
-          duration: 60,
-          exercises: []
-        }))
-      })
+      setNewRoutine(createEmptyRoutineForm())
       fetchRoutines()
     } else {
       toast({
@@ -264,8 +282,12 @@ export default function RoutinesPage() {
     }
   }
 
-  const assignRoutineToDay = async (routineId: string, dayOfWeek: number) => {
+  const assignRoutineToDay = async (routineId: string, dayOfWeek: number | null) => {
     try {
+      if (dayOfWeek === null) {
+        return
+      }
+
       // First, unassign from any existing day
       const existingAssignments = routines.flatMap(r =>
         r.dailyRoutines.filter(dr => dr.dayOfWeek === dayOfWeek)
@@ -372,7 +394,7 @@ export default function RoutinesPage() {
                 <div>
                   <Label>Asignar a día específico (opcional)</Label>
                   <select
-                    value={newRoutine.assignToDay || ''}
+                    value={newRoutine.assignToDay ?? ''}
                     onChange={(e) => setNewRoutine(prev => ({
                       ...prev,
                       assignToDay: e.target.value ? parseInt(e.target.value) : null
@@ -391,7 +413,7 @@ export default function RoutinesPage() {
                   </p>
                 </div>
 
-                <div className="flex gap-2 pt-4">
+                <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4">
                   <Button onClick={handleCreateCustomRoutine} className="flex-1">
                     Crear Rutina
                   </Button>
@@ -424,8 +446,8 @@ export default function RoutinesPage() {
               {routines.map((routine) => (
                 <Card key={routine.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                      <div className="min-w-0">
                         <CardTitle className="text-lg">{routine.name}</CardTitle>
                         {routine.description && (
                           <p className="text-muted-foreground mt-1">{routine.description}</p>
@@ -439,11 +461,12 @@ export default function RoutinesPage() {
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Button
                           onClick={() => setSelectedRoutine(routine)}
                           variant="outline"
                           size="sm"
+                          className="w-full sm:w-auto"
                         >
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalles
@@ -452,6 +475,7 @@ export default function RoutinesPage() {
                           onClick={() => deleteRoutine(routine.id, routine.name)}
                           variant="destructive"
                           size="sm"
+                          className="w-full sm:w-auto"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Eliminar

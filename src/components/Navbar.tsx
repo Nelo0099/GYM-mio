@@ -10,9 +10,9 @@ export function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-border/60 backdrop-blur-md">
-      <div className="max-w-[1280px] mx-auto px-6 h-20 flex items-center justify-between">
-        <div className="flex items-center gap-12">
-          <Link href="/" className="text-2xl font-extrabold tracking-tighter text-foreground">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-6 lg:gap-12">
+          <Link href="/" className="shrink-0 text-xl sm:text-2xl font-extrabold tracking-tighter text-foreground">
             IMPULSO<span className="text-primary">FITNESS</span>
           </Link>
 
@@ -34,16 +34,16 @@ export function Navbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
           {session ? (
             <>
-              <span className="text-sm text-muted-foreground">
+              <span className="hidden sm:inline text-sm text-muted-foreground">
                 Hola, {session.user.name}
               </span>
               <Button
                 onClick={() => signOut()}
                 variant="outline"
-                className="border-border text-foreground hover:bg-secondary rounded-[8px] font-semibold px-6"
+                className="border-border text-foreground hover:bg-secondary rounded-[8px] font-semibold px-3 sm:px-6"
               >
                 Logout
               </Button>
@@ -51,12 +51,12 @@ export function Navbar() {
           ) : (
             <>
               <Link href="/login">
-                <Button variant="outline" className="border-border text-foreground hover:bg-secondary rounded-[8px] font-semibold px-6">
+                <Button variant="outline" className="border-border text-foreground hover:bg-secondary rounded-[8px] font-semibold px-3 sm:px-6">
                   Login
                 </Button>
               </Link>
-              <Link href="/login">
-                <Button className="bg-primary hover:bg-primary/90 text-white rounded-[8px] font-semibold px-6">
+              <Link href="/login" className="hidden sm:inline-flex">
+                <Button className="bg-primary hover:bg-primary/90 text-white rounded-[8px] font-semibold px-4 sm:px-6">
                   Unirme ahora
                 </Button>
               </Link>

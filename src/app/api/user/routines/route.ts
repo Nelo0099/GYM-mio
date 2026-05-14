@@ -79,7 +79,10 @@ export async function POST(request: NextRequest) {
             console.log('Created default profile:', profile.id)
           }
         } catch (profileError) {
-          console.log('Profile table error, using fallback defaults:', profileError.message)
+          console.log(
+            'Profile table error, using fallback defaults:',
+            profileError instanceof Error ? profileError.message : profileError
+          )
           profile = {
             level: 'beginner',
             goals: ['weight_loss'],
@@ -201,7 +204,7 @@ export async function DELETE(request: NextRequest) {
 
     try {
       // Delete the routine (cascade will delete daily routines and exercises)
-      await prisma.weeklyRoutine.delete({
+      await prisma.weeklyRoutine.deleteMany({
         where: { id: routineId, userId: session.user.id }
       })
 
@@ -218,7 +221,22 @@ export async function DELETE(request: NextRequest) {
 
 const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
-const muscleGroupRoutines = {
+type GeneratedExercise = {
+  name: string
+  sets: number
+  reps: string | number
+  weight: number
+  restTime: number
+}
+
+type GeneratedDay = {
+  dayOfWeek: number
+  name: string
+  duration: number
+  exercises: Array<GeneratedExercise & { order?: number; notes?: string }>
+}
+
+const muscleGroupRoutines: Record<number, { name: string; exercises: GeneratedExercise[] }> = {
   0: { // Domingo - Descanso (generalmente)
     name: 'Descanso',
     exercises: []
@@ -287,7 +305,14 @@ const muscleGroupRoutines = {
   }
 }
 
-function generateAutoRoutine(profile: any) {
+function generateAutoRoutine(profile: {
+  level: string
+  goals: string[]
+  availableDays?: number
+  sessionDuration: number
+  equipment: string[]
+  restDays?: number[]
+}) {
   const { level, goals, sessionDuration, equipment, restDays = [0, 6] } = profile
   // Calculate available days as total days minus rest days
   const totalDays = 7
@@ -296,7 +321,12 @@ function generateAutoRoutine(profile: any) {
   const hasMachines = equipment.includes('machines')
 
   // Generate routine based on level and goals
-  const routine = {
+  const routine: {
+    name: string
+    description: string
+    type: string
+    dailyRoutines: GeneratedDay[]
+  } = {
     name: `Rutina ${level === 'beginner' ? 'Principiante' : level === 'intermediate' ? 'Intermedia' : 'Avanzada'} - ${goals.join(', ')}`,
     description: `Rutina generada automáticamente según tu perfil. Días de descanso: ${restDays.map(d => dayNames[d]).join(', ')}`,
     type: 'auto',

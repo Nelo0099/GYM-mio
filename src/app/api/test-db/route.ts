@@ -21,12 +21,15 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown database error"
+    const stack = error instanceof Error ? error.stack : undefined
+
     console.error("Database connection error:", error)
-    console.error("Error stack:", error.stack)
+    console.error("Error stack:", stack)
     return NextResponse.json({
       status: "Database connection failed",
-      error: error.message,
-      stack: error.stack,
+      error: message,
+      stack,
       timestamp: new Date().toISOString()
     }, { status: 500 })
   }

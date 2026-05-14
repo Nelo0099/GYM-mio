@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     console.error('Database connection error:', error)
     return NextResponse.json({
       status: 'error',
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown database error'
     }, { status: 500 })
   }
 }

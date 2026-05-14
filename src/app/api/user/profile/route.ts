@@ -70,16 +70,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(profile)
   } catch (error) {
     console.error("Update profile error:", error)
-    // Return a fallback profile on error
     return NextResponse.json({
-      id: "fallback",
-      userId: session?.user?.id,
-      level: "beginner",
-      goals: [],
-      availableDays: 5,
-      sessionDuration: 60,
-      equipment: ["bodyweight"],
-      restDays: [0, 6]
-    })
+      error: "No se pudo actualizar el perfil",
+      details: error instanceof Error ? error.message : "Unknown profile error"
+    }, { status: 500 })
   }
 }

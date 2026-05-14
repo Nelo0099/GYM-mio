@@ -122,7 +122,6 @@ export default function UserDashboardPage() {
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
-          qrbox: 250, // Simple square qrbox
           aspectRatio: 1.0,
         },
         false

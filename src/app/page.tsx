@@ -71,8 +71,8 @@ export default function Home() {
       </section>
 
       {/* Infinite Moving Cards */}
-      <section className="py-16">
-        <div className="h-[40rem] rounded-md flex flex-col antialiased bg-transparent items-center justify-center relative overflow-hidden">
+      <section className="py-10 sm:py-16">
+        <div className="min-h-[22rem] sm:min-h-[32rem] lg:min-h-[40rem] rounded-md flex flex-col antialiased bg-transparent items-center justify-center relative overflow-hidden">
           <InfiniteMovingCards
             items={testimonials}
             direction="right"
@@ -88,15 +88,15 @@ export default function Home() {
 
       <footer className="py-12 border-t border-border bg-background">
         <div className="max-w-[1280px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="text-xl font-extrabold tracking-tighter text-[#1A1A1A]">
+          <div className="text-xl font-extrabold tracking-tighter text-foreground">
             IMPULSO<span className="text-primary">FITNESS</span>
           </div>
-          <div className="flex gap-8 text-sm font-medium text-muted-foreground">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-8 text-sm font-medium text-muted-foreground">
             <a href="#" className="hover:text-primary transition-colors">Privacidad</a>
             <a href="#" className="hover:text-primary transition-colors">Términos</a>
             <a href="#" className="hover:text-primary transition-colors">Soporte</a>
           </div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-center text-sm text-muted-foreground">
             © 2024 Impulso Fitness. All rights reserved.
           </div>
         </div>

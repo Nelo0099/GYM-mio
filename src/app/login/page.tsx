@@ -96,7 +96,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F7F9FC] p-4 sm:p-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 sm:p-6">
       <div className="w-full max-w-[450px] space-y-6 sm:space-y-8">
         <div className="text-center">
           <Link href="/" className="text-2xl sm:text-3xl font-extrabold tracking-tighter text-foreground">
@@ -142,7 +142,7 @@ export default function LoginPage() {
                 />
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <Label htmlFor="password" className="text-sm font-bold text-foreground">Contraseña</Label>
                   {!isRegister && <a href="#" className="text-xs font-bold text-primary hover:underline">¿Olvidaste tu contraseña?</a>}
                 </div>

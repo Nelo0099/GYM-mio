@@ -16,6 +16,8 @@ import { Calendar as CalendarComponent } from 'react-calendar'
 import QRCode from 'qrcode'
 import 'react-calendar/dist/Calendar.css'
 
+type CalendarValue = Date | [Date | null, Date | null] | null
+
 interface User {
   id: string
   email: string
@@ -233,7 +235,12 @@ export default function AdminDashboardPage() {
     signOut({ callbackUrl: '/' })
   }
 
-  const handleDateChange = async (date: Date) => {
+  const handleDateChange = async (value: CalendarValue) => {
+    if (!(value instanceof Date)) {
+      return
+    }
+
+    const date = value
     console.log('handleDateChange called with date:', date)
     console.log('Current session status:', status)
     console.log('Current session user:', session?.user)
@@ -412,20 +419,20 @@ export default function AdminDashboardPage() {
                 <DialogTitle className="text-lg sm:text-xl">Crear Nuevo Usuario</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
+                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-2 sm:gap-4">
+                  <Label htmlFor="name" className="sm:text-right">
                     Nombre
                   </Label>
                   <Input
                     id="name"
                     value={newUser.name}
                     onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                    className="col-span-3"
+                    className="sm:col-span-3"
                     placeholder="Nombre completo"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
+                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-2 sm:gap-4">
+                  <Label htmlFor="email" className="sm:text-right">
                     Email
                   </Label>
                   <Input
@@ -433,12 +440,12 @@ export default function AdminDashboardPage() {
                     type="email"
                     value={newUser.email}
                     onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                    className="col-span-3"
+                    className="sm:col-span-3"
                     placeholder="usuario@email.com"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="password" className="text-right">
+                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-2 sm:gap-4">
+                  <Label htmlFor="password" className="sm:text-right">
                     Contraseña
                   </Label>
                   <Input
@@ -446,26 +453,26 @@ export default function AdminDashboardPage() {
                     type="password"
                     value={newUser.password}
                     onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                    className="col-span-3"
+                    className="sm:col-span-3"
                     placeholder="Contraseña segura"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="role" className="text-right">
+                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-2 sm:gap-4">
+                  <Label htmlFor="role" className="sm:text-right">
                     Rol
                   </Label>
                   <select
                     id="role"
                     value={newUser.role}
                     onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
-                    className="col-span-3 px-3 py-2 border border-input bg-background rounded-md"
+                    className="sm:col-span-3 px-3 py-2 border border-input bg-background rounded-md"
                   >
                     <option value="user">Usuario</option>
                     <option value="admin">Administrador</option>
                   </select>
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancelar
                 </Button>
@@ -592,7 +599,7 @@ export default function AdminDashboardPage() {
         {selectedDate && (
           <Card className="mt-8">
             <CardHeader>
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                 <div>
                   <CardTitle>
                     Asistencias del {selectedDate.toLocaleDateString('es-ES')}
@@ -601,7 +608,7 @@ export default function AdminDashboardPage() {
                     Total de asistencias: {attendances.length}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => exportAttendances('excel')}
                     variant="outline"

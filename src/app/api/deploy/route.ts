@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     console.error('Migration error:', error)
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown deployment error'
     }, { status: 500 })
   }
 }

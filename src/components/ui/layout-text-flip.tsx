@@ -20,8 +20,8 @@ export function LayoutTextFlip({
   }, [words.length]);
 
   return (
-    <div className="flex items-center pl-12">
-      <span className="text-2xl md:text-4xl lg:text-6xl font-bold leading-none">
+    <div className="flex w-full flex-col items-center justify-center gap-2 px-2 text-center sm:flex-row sm:px-6 md:pl-12">
+      <span className="text-2xl md:text-4xl lg:text-6xl font-bold leading-tight md:leading-none">
         {text}
       </span>
       <AnimatePresence mode="wait">
@@ -31,7 +31,7 @@ export function LayoutTextFlip({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 3 }}
-          className="text-2xl md:text-4xl lg:text-6xl font-bold leading-none text-primary ml-0.5"
+          className="text-2xl md:text-4xl lg:text-6xl font-bold leading-tight md:leading-none text-primary sm:ml-0.5"
         >
           {words[currentIndex]}
         </motion.span>
