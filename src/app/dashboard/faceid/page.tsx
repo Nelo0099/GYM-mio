@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Upload, Camera, Trash2, User, Loader2 } from "lucide-react"
-// Dynamic import to avoid SSR issues
-// import * as faceapi from 'face-api.js'
+// Import lightweight face detector (CommonJS)
+const LightweightFaceDetector = require('@/lib/lightweight-face-detector.js').default || require('@/lib/lightweight-face-detector.js')
 
 interface FaceImage {
   filename: string
@@ -25,6 +25,7 @@ export default function FaceIdSetupPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [modelsLoaded, setModelsLoaded] = useState(false)
   const [isProcessingDescriptors, setIsProcessingDescriptors] = useState(false)
+  const [faceDetector, setFaceDetector] = useState<LightweightFaceDetector | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -42,13 +43,18 @@ export default function FaceIdSetupPage() {
     loadModels()
   }, [session, status, router])
 
-  // Simplified model loading for production
+  // Load lightweight face detector
   const loadModels = async () => {
-    // Simulate loading for demo
-    setTimeout(() => {
+    try {
+      const detector = new LightweightFaceDetector()
+      setFaceDetector(detector)
       setModelsLoaded(true)
-      console.log('Mock models loaded for setup')
-    }, 500)
+      console.log('Lightweight face detector loaded successfully')
+    } catch (error) {
+      console.error('Failed to load face detector:', error)
+      // Fallback to basic functionality
+      setModelsLoaded(true)
+    }
   }
 
   const loadFaceImages = async () => {
@@ -57,9 +63,13 @@ export default function FaceIdSetupPage() {
       if (response.ok) {
         const data = await response.json()
         setFaceImages(data.faceImages || [])
+      } else {
+        console.error('Failed to load face images:', response.status)
+        setFaceImages([])
       }
     } catch (error) {
       console.error('Error loading face images:', error)
+      setFaceImages([])
     }
   }
 
@@ -99,9 +109,15 @@ export default function FaceIdSetupPage() {
         body: formData,
       })
 
-      const result = await response.json()
+      let result
+      try {
+        result = await response.json()
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError)
+        result = { message: 'Error desconocido del servidor' }
+      }
 
-      if (response.ok) {
+      if (response.ok && result.success) {
         toast({
           title: "Imagen subida",
           description: result.message,
@@ -111,9 +127,10 @@ export default function FaceIdSetupPage() {
         // Extract face descriptors from the uploaded image
         await extractDescriptorsFromImage(result.url)
       } else {
+        const errorMessage = typeof result === 'string' ? result : (result.message || 'Error desconocido')
         toast({
           title: "Error al subir",
-          description: result.message || "Error desconocido",
+          description: errorMessage,
           variant: "destructive",
         })
       }
@@ -130,34 +147,87 @@ export default function FaceIdSetupPage() {
   }
 
   const extractDescriptorsFromImage = async (imageUrl: string) => {
-    // Simplified version for production - just mark as processed
     setIsProcessingDescriptors(true)
 
     try {
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (!faceDetector) {
+        console.warn('Face detector not available, skipping descriptor extraction')
+        setIsProcessingDescriptors(false)
+        return
+      }
 
-      // For demo purposes, create mock descriptors
-      const mockDescriptors = [{
-        descriptor: Array.from({ length: 128 }, () => Math.random()),
-        createdAt: new Date().toISOString()
-      }]
+      // Load image for processing
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
 
-      // Store mock descriptor
+      await new Promise((resolve, reject) => {
+        img.onload = resolve
+        img.onerror = reject
+        img.src = imageUrl
+      })
+
+      // Detect faces in the image
+      console.log('Detecting faces in uploaded image...')
+      const detections = await faceDetector.detectFaces(img)
+
+      if (detections.length === 0) {
+        console.warn('No faces detected in the image')
+        toast({
+          title: "Sin rostros detectados",
+          description: "No se encontraron rostros en la imagen. Intenta con una foto más clara.",
+          variant: "destructive",
+        })
+        setIsProcessingDescriptors(false)
+        return
+      }
+
+      console.log(`Found ${detections.length} face(s), processing descriptors...`)
+
+      // Extract descriptors for each detected face
+      const descriptors = []
+      for (const detection of detections) {
+        try {
+          const descriptor = await faceDetector.extractFaceDescriptor(img, detection)
+          descriptors.push({
+            descriptor: Array.from(descriptor),
+            createdAt: new Date().toISOString(),
+            confidence: detection.score || 0.5
+          })
+        } catch (error) {
+          console.error('Error extracting descriptor:', error)
+        }
+      }
+
+      if (descriptors.length === 0) {
+        throw new Error('Failed to extract any face descriptors')
+      }
+
+      // Store descriptors
       const response = await fetch('/api/faceid/descriptors', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: session?.user?.id,
-          descriptors: mockDescriptors
+          descriptors: descriptors
         })
       })
 
       if (response.ok) {
-        console.log('Mock face descriptor stored for demo')
+        console.log(`Successfully stored ${descriptors.length} face descriptor(s)`)
+        toast({
+          title: "Descriptores extraídos",
+          description: `${descriptors.length} rostro(s) procesado(s) correctamente.`,
+        })
+      } else {
+        throw new Error('Failed to store descriptors')
       }
     } catch (error) {
-      console.error('Error storing mock descriptors:', error)
+      console.error('Error extracting face descriptors:', error)
+      toast({
+        title: "Error en procesamiento",
+        description: "No se pudieron procesar los descriptores faciales.",
+        variant: "destructive",
+      })
     }
 
     setIsProcessingDescriptors(false)
@@ -166,16 +236,16 @@ export default function FaceIdSetupPage() {
   const captureFromCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' }
+        video: { facingMode: 'user', width: 640, height: 480 }
       })
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         videoRef.current.play()
 
-        // Wait a moment for camera to stabilize
+        // Show camera preview for a few seconds to allow positioning
         setTimeout(async () => {
-          if (videoRef.current && canvasRef.current) {
+          if (videoRef.current && canvasRef.current && faceDetector) {
             const canvas = canvasRef.current
             const video = videoRef.current
 
@@ -185,6 +255,40 @@ export default function FaceIdSetupPage() {
             const ctx = canvas.getContext('2d')
             if (ctx) {
               ctx.drawImage(video, 0, 0)
+
+              // Detect faces in the captured image
+              console.log('Analyzing camera capture for faces...')
+              const detections = await faceDetector.detectFaces(canvas)
+
+              if (detections.length === 0) {
+                // Stop camera
+                stream.getTracks().forEach(track => track.stop())
+
+                toast({
+                  title: "Sin rostros detectados",
+                  description: "No se detectó ningún rostro. Inténtalo de nuevo con mejor iluminación.",
+                  variant: "destructive",
+                })
+                return
+              }
+
+              console.log(`Detected ${detections.length} face(s) in camera capture`)
+
+              // Draw detection overlay for visual feedback
+              detections.forEach(detection => {
+                const { x, y, width, height } = detection.box
+                ctx.strokeStyle = '#00ff00'
+                ctx.lineWidth = 3
+                ctx.strokeRect(x, y, width, height)
+
+                // Add confidence text
+                ctx.fillStyle = '#00ff00'
+                ctx.font = '16px Arial'
+                ctx.fillText(`${Math.round((detection.score || 0) * 100)}%`, x, y - 5)
+              })
+
+              // Small delay to show the detection overlay
+              await new Promise(resolve => setTimeout(resolve, 500))
 
               canvas.toBlob(async (blob) => {
                 if (blob) {
@@ -203,30 +307,42 @@ export default function FaceIdSetupPage() {
                     body: formData,
                   })
 
-      if (response.ok) {
-        const result = await response.json()
-        toast({
-          title: "Imagen subida",
-          description: result.message,
-        })
+                  if (response.ok) {
+                    const result = await response.json()
+                    toast({
+                      title: "Imagen subida",
+                      description: `Foto capturada exitosamente. ${detections.length} rostro(s) detectado(s).`,
+                    })
 
-        // Mark Face ID as configured
-        localStorage.setItem('faceIdSetup', 'true')
+                    // Mark Face ID as configured
+                    localStorage.setItem('faceIdSetup', 'true')
 
-        loadFaceImages()
-        await extractDescriptorsFromImage(result.url)
+                    loadFaceImages()
+                    if (result.url) {
+                      await extractDescriptorsFromImage(result.url)
+                    }
+                  } else {
+                    const errorText = await response.text()
+                    toast({
+                      title: "Error al subir",
+                      description: errorText || "Error desconocido",
+                      variant: "destructive",
+                    })
                   }
                 }
-              }, 'image/jpeg', 0.8)
+              }, 'image/jpeg', 0.9) // Higher quality for better detection
             }
+          } else {
+            // Stop camera if detector not available
+            stream.getTracks().forEach(track => track.stop())
           }
-        }, 2000)
+        }, 3000) // Give user 3 seconds to position themselves
       }
     } catch (error) {
       console.error('Camera capture error:', error)
       toast({
         title: "Error de cámara",
-        description: "No se pudo acceder a la cámara",
+        description: "No se pudo acceder a la cámara. Verifica los permisos.",
         variant: "destructive",
       })
     }
@@ -238,20 +354,29 @@ export default function FaceIdSetupPage() {
     }
 
     try {
-      const response = await fetch(`/api/faceid/images/${filename}`, {
+      const response = await fetch(`/api/faceid/images/${session?.user?.id}/${filename}`, {
         method: 'DELETE',
       })
 
-      if (response.ok) {
+      let result
+      try {
+        result = await response.json()
+      } catch (parseError) {
+        console.error('Failed to parse delete response:', parseError)
+        result = { message: 'Error desconocido del servidor' }
+      }
+
+      if (response.ok && result.success) {
         toast({
           title: "Imagen eliminada",
-          description: "La imagen ha sido eliminada correctamente",
+          description: result.message || "La imagen ha sido eliminada correctamente",
         })
         loadFaceImages()
       } else {
+        const errorMessage = typeof result === 'string' ? result : (result.message || 'Error desconocido')
         toast({
           title: "Error al eliminar",
-          description: "No se pudo eliminar la imagen",
+          description: errorMessage,
           variant: "destructive",
         })
       }
@@ -280,8 +405,14 @@ export default function FaceIdSetupPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Configuración de Face ID</h1>
           <p className="text-muted-foreground">
-            Sube hasta 6 fotos de tu rostro para habilitar el login facial
+            Sube hasta 6 fotos de tu rostro para habilitar el login facial con detección automática
           </p>
+          {modelsLoaded && (
+            <div className="mt-2 text-sm text-green-600 flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              Detector de rostros listo
+            </div>
+          )}
         </div>
 
         {/* Upload Section */}
@@ -295,6 +426,7 @@ export default function FaceIdSetupPage() {
           <CardContent>
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground">
+                <p>• El sistema detecta automáticamente rostros en las imágenes</p>
                 <p>• Sube fotos claras de tu rostro desde diferentes ángulos</p>
                 <p>• Usa buena iluminación y evita accesorios que cubran tu rostro</p>
                 <p>• Máximo 6 imágenes por usuario</p>
@@ -318,7 +450,7 @@ export default function FaceIdSetupPage() {
                   className="flex items-center gap-2"
                 >
                   <Camera className="h-4 w-4" />
-                  Tomar Foto
+                  Tomar Foto con Detección
                 </Button>
               </div>
 

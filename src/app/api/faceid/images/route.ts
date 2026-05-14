@@ -24,19 +24,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    const faceDir = path.join(process.cwd(), 'public', 'FaceID', userId)
+    const faceDir = path.join(process.cwd(), 'src', 'photoface', userId)
+    const associationFile = path.join(faceDir, 'association.json')
 
-    if (!fs.existsSync(faceDir)) {
+    // Check if user has face data
+    if (!fs.existsSync(associationFile)) {
       return NextResponse.json({ faceImages: [] })
     }
 
-    const files = fs.readdirSync(faceDir)
-    const imageFiles = files
-      .filter(f => f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.jpeg'))
-      .map(filename => ({
-        filename,
-        url: `/FaceID/${userId}/${filename}`
-      }))
+    // Read association file
+    const associationData = JSON.parse(fs.readFileSync(associationFile, 'utf-8'))
+
+    const imageFiles = associationData.images.map((image: any) => ({
+      filename: image.filename,
+      url: `/api/faceid/images/${userId}/${image.filename}`
+    }))
 
     return NextResponse.json({ faceImages: imageFiles })
   } catch (error) {
@@ -69,29 +71,53 @@ export async function POST(request: NextRequest) {
     // Convert file to buffer for processing
     const buffer = Buffer.from(await imageFile.arrayBuffer())
 
-    // Create FaceID directory if it doesn't exist
-    const faceDir = path.join(process.cwd(), 'public', 'FaceID', userId)
-    if (!fs.existsSync(faceDir)) {
-      fs.mkdirSync(faceDir, { recursive: true })
+    // Create photoface directory if it doesn't exist
+    const photofaceDir = path.join(process.cwd(), 'src', 'photoface')
+    if (!fs.existsSync(photofaceDir)) {
+      fs.mkdirSync(photofaceDir, { recursive: true })
     }
 
-    // Get existing images count
-    const existingFiles = fs.existsSync(faceDir) ? fs.readdirSync(faceDir) : []
-    const imageCount = existingFiles.filter(f => f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.jpeg')).length
+    // Create user-specific directory
+    const userFaceDir = path.join(photofaceDir, userId)
+    if (!fs.existsSync(userFaceDir)) {
+      fs.mkdirSync(userFaceDir, { recursive: true })
+    }
 
-    if (imageCount >= 6) {
+    // Read or create association file
+    const associationFile = path.join(userFaceDir, 'association.json')
+    let associationData = { userId, images: [] }
+
+    if (fs.existsSync(associationFile)) {
+      associationData = JSON.parse(fs.readFileSync(associationFile, 'utf-8'))
+    }
+
+    // Check image count limit
+    if (associationData.images.length >= 6) {
       return NextResponse.json("Maximum 6 face images allowed per user", { status: 400 })
     }
 
+    // Generate unique filename
+    const timestamp = Date.now()
+    const filename = `face_${timestamp}_${associationData.images.length + 1}.jpg`
+    const filePath = path.join(userFaceDir, filename)
+
     // Save the image
-    const filename = `face_${Date.now()}_${imageCount + 1}.jpg`
-    const filePath = path.join(faceDir, filename)
     fs.writeFileSync(filePath, buffer)
+
+    // Update association file
+    const imageData = {
+      filename,
+      uploadedAt: new Date().toISOString(),
+      size: buffer.length
+    }
+
+    associationData.images.push(imageData)
+    fs.writeFileSync(associationFile, JSON.stringify(associationData, null, 2))
 
     return NextResponse.json({
       success: true,
       filename,
-      url: `/FaceID/${userId}/${filename}`,
+      url: `/api/faceid/images/${userId}/${filename}`,
       message: "Face image uploaded successfully"
     })
   } catch (error) {

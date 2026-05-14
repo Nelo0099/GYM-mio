@@ -4,6 +4,50 @@ import { authOptions } from "@/lib/auth"
 import fs from 'fs'
 import path from 'path'
 
+export async function GET(request: NextRequest, { params }: { params: { filename: string } }) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json("Unauthorized", { status: 401 })
+    }
+
+    // URL structure: /api/faceid/images/[userId]/[filename]
+    // params.filename will be "userId/filename"
+    const [userId, filename] = params.filename.split('/')
+
+    if (!userId || !filename) {
+      return NextResponse.json("Invalid path", { status: 400 })
+    }
+
+    // Only allow users to view their own images or admins to view any
+    if (session.user.id !== userId && session.user.role !== 'admin') {
+      return NextResponse.json("Unauthorized", { status: 401 })
+    }
+
+    const userFaceDir = path.join(process.cwd(), 'src', 'photoface', userId)
+    const filePath = path.join(userFaceDir, filename)
+
+    if (!fs.existsSync(filePath)) {
+      return NextResponse.json("Image not found", { status: 404 })
+    }
+
+    // Read the image file
+    const imageBuffer = fs.readFileSync(filePath)
+
+    // Return the image with appropriate headers
+    return new NextResponse(imageBuffer, {
+      headers: {
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'public, max-age=31536000'
+      }
+    })
+  } catch (error) {
+    console.error("Get face image error:", error)
+    return NextResponse.json("Internal server error", { status: 500 })
+  }
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: { filename: string } }) {
   try {
     const session = await getServerSession(authOptions)
@@ -12,40 +56,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { filen
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    const filename = params.filename
+    // URL structure: /api/faceid/images/[userId]/[filename]
+    const [userId, filename] = params.filename.split('/')
 
-    if (!filename) {
-      return NextResponse.json("Missing filename", { status: 400 })
-    }
-
-    // Extract userId from the filename or find the user directory
-    // Since filenames are like face_timestamp_index.jpg, we need to find which user owns it
-    const faceIdDir = path.join(process.cwd(), 'public', 'FaceID')
-
-    if (!fs.existsSync(faceIdDir)) {
-      return NextResponse.json("Image not found", { status: 404 })
-    }
-
-    // Find the user directory containing this file
-    const userDirs = fs.readdirSync(faceIdDir, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name)
-
-    let userId = null
-    let filePath = null
-
-    for (const uid of userDirs) {
-      const userFaceDir = path.join(faceIdDir, uid)
-      const potentialPath = path.join(userFaceDir, filename)
-      if (fs.existsSync(potentialPath)) {
-        userId = uid
-        filePath = potentialPath
-        break
-      }
-    }
-
-    if (!userId || !filePath) {
-      return NextResponse.json("Image not found", { status: 404 })
+    if (!userId || !filename) {
+      return NextResponse.json("Invalid path", { status: 400 })
     }
 
     // Only allow users to delete their own images or admins to delete any
@@ -53,8 +68,23 @@ export async function DELETE(request: NextRequest, { params }: { params: { filen
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
+    const userFaceDir = path.join(process.cwd(), 'src', 'photoface', userId)
+    const associationFile = path.join(userFaceDir, 'association.json')
+    const filePath = path.join(userFaceDir, filename)
+
+    if (!fs.existsSync(associationFile) || !fs.existsSync(filePath)) {
+      return NextResponse.json("Image not found", { status: 404 })
+    }
+
+    // Read and update association file
+    const associationData = JSON.parse(fs.readFileSync(associationFile, 'utf-8'))
+    associationData.images = associationData.images.filter((img: any) => img.filename !== filename)
+
     // Delete the file
     fs.unlinkSync(filePath)
+
+    // Update association file
+    fs.writeFileSync(associationFile, JSON.stringify(associationData, null, 2))
 
     return NextResponse.json({
       success: true,

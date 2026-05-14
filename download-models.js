@@ -4,11 +4,7 @@ const path = require('path')
 
 const models = [
   'tiny_face_detector_model-weights_manifest.json',
-  'tiny_face_detector_model.shard',
-  'face_landmark_68_model-weights_manifest.json',
-  'face_landmark_68_model.shard',
-  'face_recognition_model-weights_manifest.json',
-  'face_recognition_model.shard'
+  'tiny_face_detector_model.shard'
 ]
 
 const baseUrl = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/'
