@@ -1,16 +1,27 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Camera, User, CheckCircle, XCircle, Loader2 } from "lucide-react"
-// import * as faceapi from 'face-api.js' // Commented out for production build compatibility
+import { Camera, CheckCircle, Loader2, User, XCircle } from "lucide-react"
 
 interface FaceIdDialogProps {
   isOpen: boolean
   onClose: () => void
   onLogin: (user: any) => void
+}
+
+type StoredDescriptor = {
+  descriptor: unknown[]
+  createdAt: Date
+}
+
+type RecognitionResult = {
+  success: boolean
+  message: string
+  confidence: number
+  userId?: string
 }
 
 export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
@@ -19,18 +30,16 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isCapturing, setIsCapturing] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [recognitionResult, setRecognitionResult] = useState<any>(null)
+  const [recognitionResult, setRecognitionResult] = useState<RecognitionResult | null>(null)
   const [modelsLoaded, setModelsLoaded] = useState(false)
-  const [storedDescriptors, setStoredDescriptors] = useState<any[]>([])
+  const [storedDescriptors, setStoredDescriptors] = useState<StoredDescriptor[]>([])
 
-  // Load face-api.js models when dialog opens
   useEffect(() => {
     if (isOpen && !modelsLoaded) {
       loadModels()
     }
   }, [isOpen, modelsLoaded])
 
-  // Load user's face descriptors when dialog opens
   useEffect(() => {
     if (isOpen && modelsLoaded) {
       loadUserDescriptors()
@@ -39,18 +48,14 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
 
   const loadModels = async () => {
     try {
-      // Simplified model loading for production deployment
-      console.log('Loading mock face recognition models...')
-
-      // Simulate loading time
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
+      console.log("Loading mock face recognition models...")
+      await new Promise((resolve) => setTimeout(resolve, 1000))
       setModelsLoaded(true)
-      console.log('Mock Face API models loaded successfully')
+      console.log("Mock Face API models loaded successfully")
     } catch (error) {
-      console.error('Error loading mock models:', error)
+      console.error("Error loading mock models:", error)
       toast({
-        title: "Error de inicialización",
+        title: "Error de inicializacion",
         description: "Error al inicializar el reconocimiento facial.",
         variant: "destructive",
       })
@@ -60,15 +65,15 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
 
   const loadUserDescriptors = async () => {
     try {
-      // Try to get descriptors from localStorage first
-      const stored = localStorage.getItem('faceDescriptors')
+      const stored = localStorage.getItem("faceDescriptors")
+
       if (stored) {
         const parsedDescriptors = JSON.parse(stored)
+
         if (Array.isArray(parsedDescriptors) && parsedDescriptors.length > 0) {
-          // Convert to simple objects for mock usage
           const descriptors = parsedDescriptors.map((desc: any) => ({
             descriptor: desc.descriptor || [],
-            createdAt: new Date(desc.createdAt || Date.now())
+            createdAt: new Date(desc.createdAt || Date.now()),
           }))
 
           setStoredDescriptors(descriptors)
@@ -77,36 +82,24 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
         }
       }
 
-      // If no localStorage data, try to load from server (fallback)
-      const response = await fetch('/api/faceid/descriptors')
+      const response = await fetch("/api/faceid/descriptors")
+
       if (response.ok) {
         const data = await response.json()
+
         if (data.descriptors && data.descriptors.length > 0) {
-          // Store as simple arrays for mock usage
           const descriptors = data.descriptors.map((desc: any) => ({
             descriptor: desc.descriptor || [],
-            createdAt: new Date(desc.createdAt)
+            createdAt: new Date(desc.createdAt || Date.now()),
           }))
+
           setStoredDescriptors(descriptors)
-          // Store in localStorage for faster future access
-          localStorage.setItem('faceDescriptors', JSON.stringify(data.descriptors))
+          localStorage.setItem("faceDescriptors", JSON.stringify(data.descriptors))
           console.log(`Loaded ${descriptors.length} face descriptors from server`)
         }
       }
     } catch (error) {
-      console.error('Error loading face descriptors:', error)
-      // Continue with empty descriptors - user will be prompted to set up Face ID
-    }
-  }
-
-      // Fallback: create mock descriptors for demo if none exist
-      console.log('No stored descriptors found, using demo mode')
-      // In production, you would load from server here
-      // For demo purposes, we'll assume descriptors exist
-
-    } catch (error) {
-      console.error('Error loading face descriptors:', error)
-      // Continue with empty descriptors - user will be prompted to set up Face ID
+      console.error("Error loading face descriptors:", error)
     }
   }
 
@@ -114,36 +107,37 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'user',
+          facingMode: "user",
           width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
+          height: { ideal: 480 },
+        },
       })
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        // Wait for video to be ready
         videoRef.current.onloadedmetadata = () => {
           videoRef.current?.play()
         }
       }
+
       setIsCapturing(true)
     } catch (error) {
-      console.error('Camera error:', error)
+      console.error("Camera error:", error)
       toast({
-        title: "Error de cámara",
-        description: "No se pudo acceder a la cámara. Asegúrate de dar permisos.",
+        title: "Error de camara",
+        description: "No se pudo acceder a la camara. Asegurate de dar permisos.",
         variant: "destructive",
       })
     }
   }
 
   const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
+    if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream
-      stream.getTracks().forEach(track => track.stop())
+      stream.getTracks().forEach((track) => track.stop())
       videoRef.current.srcObject = null
     }
+
     setIsCapturing(false)
   }
 
@@ -152,253 +146,81 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
     setRecognitionResult(null)
 
     try {
-      // Simplified recognition for production reliability
-      // In a full implementation, this would use proper face descriptor comparison
-
-      // Check if user has face images configured
-      if (storedDescriptors.length === 0) {
-        // Try to load from localStorage or check if user has setup Face ID
-        const hasSetup = localStorage.getItem('faceIdSetup') === 'true'
-
-        if (!hasSetup) {
-          setRecognitionResult({
-            success: false,
-            message: "Face ID no configurado. Ve a 'Configurar Face ID' para subir tus fotos primero.",
-            confidence: 0
-          })
-
-          toast({
-            title: "Face ID no configurado",
-            description: "Configura Face ID primero en el dashboard",
-            variant: "destructive",
-          })
-
-          setIsProcessing(false)
-          return
-        }
+      if (!videoRef.current) {
+        throw new Error("Video element not available")
       }
 
-      // Simulate face detection (in production, use face-api.js properly)
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate processing time
+      if (storedDescriptors.length === 0 && localStorage.getItem("faceIdSetup") !== "true") {
+        setRecognitionResult({
+          success: false,
+          message: "Face ID no configurado. Ve a 'Configurar Face ID' para subir tus fotos primero.",
+          confidence: 0,
+        })
 
-      // For demo purposes, simulate successful recognition
-      // In production, this would compare face descriptors
-      const recognitionSuccess = Math.random() > 0.2 // 80% success rate
-      const confidence = recognitionSuccess ?
-        Math.random() * 0.2 + 0.8 : // 80-100% confidence
-        Math.random() * 0.4       // 0-40% confidence
+        toast({
+          title: "Face ID no configurado",
+          description: "Configura Face ID primero en el dashboard",
+          variant: "destructive",
+        })
+        return
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      const recognitionSuccess = Math.random() > 0.2
+      const confidence = recognitionSuccess ? Math.random() * 0.2 + 0.8 : Math.random() * 0.4
 
       if (recognitionSuccess) {
         const result = {
           success: true,
-          userId: 'demo-user',
-          confidence: confidence,
-          message: "Rostro reconocido exitosamente"
+          userId: "demo-user",
+          confidence,
+          message: "Rostro reconocido exitosamente",
         }
 
         setRecognitionResult(result)
 
         toast({
-          title: "¡Reconocimiento exitoso!",
+          title: "Reconocimiento exitoso",
           description: `Confianza: ${Math.round(confidence * 100)}%`,
         })
 
-        // Simulate server validation
         setTimeout(() => {
           onLogin({
-            id: 'face-login-user',
-            name: 'Usuario',
-            email: 'face@login.com'
+            id: "face-login-user",
+            name: "Usuario",
+            email: "face@login.com",
           })
           onClose()
         }, 2000)
-
       } else {
         setRecognitionResult({
           success: false,
-          message: "Rostro no reconocido. Verifica que estés bien iluminado y mirando directamente a la cámara.",
-          confidence: confidence
+          message: "Rostro no reconocido. Verifica que estes bien iluminado y mirando directamente a la camara.",
+          confidence,
         })
 
         toast({
           title: "Reconocimiento fallido",
-          description: "Intenta de nuevo con mejor iluminación",
+          description: "Intenta de nuevo con mejor iluminacion",
           variant: "destructive",
         })
       }
-
     } catch (error) {
-      console.error('Face recognition error:', error)
+      console.error("Face recognition error:", error)
       setRecognitionResult({
         success: false,
-        message: "Error técnico en el reconocimiento facial",
-        confidence: 0
+        message: "Error tecnico en el reconocimiento facial",
+        confidence: 0,
       })
       toast({
         title: "Error",
         description: "Error en el procesamiento facial",
         variant: "destructive",
       })
+    } finally {
+      setIsProcessing(false)
     }
-
-    setIsProcessing(false)
-  }
-
-    setIsProcessing(true)
-    setRecognitionResult(null)
-
-    try {
-      const video = videoRef.current
-      if (!video) {
-        throw new Error('Video element not available')
-      }
-
-      // For production, implement a simplified recognition
-      // This version uses basic face detection and assumes success for demo
-      // In a full implementation, you'd use the face-api.js models
-
-      try {
-        // Simplified face detection for production deployment
-        console.log('Performing mock face detection...')
-
-        // Simulate face detection
-        await new Promise(resolve => setTimeout(resolve, 800))
-
-        // Mock detection results
-        const mockFacesDetected = Math.random() > 0.1 // 90% chance of detecting a face
-
-        if (!mockFacesDetected) {
-          setRecognitionResult({
-            success: false,
-            message: "No se detectó ningún rostro. Asegúrate de estar bien iluminado y mirando a la cámara.",
-            confidence: 0
-          })
-          setIsProcessing(false)
-          return
-        }
-
-        // For production demo, assume successful recognition if we have stored descriptors
-        const recognitionSuccess = storedDescriptors.length > 0 && Math.random() > 0.2 // 80% success rate for demo
-        const confidence = recognitionSuccess ? Math.random() * 0.3 + 0.7 : Math.random() * 0.3 // 70-100% or 0-30%
-
-        if (recognitionSuccess) {
-          const result = {
-            success: true,
-            userId: 'current-user',
-            confidence: confidence,
-            message: "Rostro reconocido exitosamente"
-          }
-
-          setRecognitionResult(result)
-
-          // Send to server for validation
-          try {
-            const response = await fetch('/api/faceid/recognize', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(result)
-            })
-
-            if (response.ok) {
-              const serverResult = await response.json()
-              if (serverResult.success && serverResult.user) {
-                toast({
-                  title: "¡Login exitoso!",
-                  description: `Bienvenido de vuelta`,
-                })
-
-                setTimeout(() => {
-                  onLogin(serverResult.user)
-                  onClose()
-                }, 2000)
-              }
-            } else {
-              throw new Error('Server validation failed')
-            }
-          } catch (serverError) {
-            console.error('Server validation error:', serverError)
-            // Allow login anyway for demo purposes
-            toast({
-              title: "¡Login exitoso!",
-              description: "Reconocimiento facial completado",
-            })
-            setTimeout(() => {
-              onLogin({ id: 'face-login-user', name: 'Usuario', email: 'face@login.com' })
-              onClose()
-            }, 2000)
-          }
-        } else {
-          setRecognitionResult({
-            success: false,
-            message: "Rostro no reconocido. Verifica que hayas configurado Face ID correctamente.",
-            confidence: confidence
-          })
-
-          toast({
-            title: "Reconocimiento fallido",
-            description: "El rostro no coincide con las imágenes registradas.",
-            variant: "destructive",
-          })
-        }
-
-      } catch (faceApiError) {
-        console.error('Face API error:', faceApiError)
-
-        // Fallback: simplified recognition for when models fail to load
-        console.log('Using fallback recognition method')
-
-        const recognitionSuccess = storedDescriptors.length > 0 && Math.random() > 0.3 // 70% success rate
-        const confidence = recognitionSuccess ? Math.random() * 0.2 + 0.8 : Math.random() * 0.4
-
-        if (recognitionSuccess) {
-          const result = {
-            success: true,
-            userId: 'current-user',
-            confidence: confidence,
-            message: "Reconocimiento facial completado (método alternativo)"
-          }
-
-          setRecognitionResult(result)
-
-          toast({
-            title: "¡Login exitoso!",
-            description: "Reconocimiento facial completado",
-          })
-
-          setTimeout(() => {
-            onLogin({ id: 'face-login-user', name: 'Usuario', email: 'face@login.com' })
-            onClose()
-          }, 2000)
-        } else {
-          setRecognitionResult({
-            success: false,
-            message: "Reconocimiento fallido. Intenta de nuevo.",
-            confidence: confidence
-          })
-
-          toast({
-            title: "Reconocimiento fallido",
-            description: "No se pudo reconocer tu rostro.",
-            variant: "destructive",
-          })
-        }
-      }
-
-    } catch (error) {
-      console.error('Face recognition error:', error)
-      setRecognitionResult({
-        success: false,
-        message: "Error en el procesamiento de reconocimiento facial",
-        confidence: 0
-      })
-      toast({
-        title: "Error",
-        description: "Error en el reconocimiento facial",
-        variant: "destructive",
-      })
-    }
-
-    setIsProcessing(false)
   }
 
   const handleClose = () => {
@@ -434,11 +256,11 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
                 <User className="h-16 w-16 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Presiona el botón para activar la cámara y reconocer tu rostro
+                Presiona el boton para activar la camara y reconocer tu rostro
               </p>
               {storedDescriptors.length === 0 && (
                 <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
-                  ⚠️ No hay imágenes de rostro registradas. Ve a "Configurar Face ID" primero.
+                  No hay imagenes de rostro registradas. Ve a "Configurar Face ID" primero.
                 </p>
               )}
               <Button
@@ -447,7 +269,7 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
                 disabled={storedDescriptors.length === 0}
               >
                 <Camera className="h-4 w-4 mr-2" />
-                Activar Cámara
+                Activar Camara
               </Button>
             </div>
           ) : (
@@ -472,28 +294,30 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
               </div>
 
               {recognitionResult && (
-                <div className={`p-4 rounded-lg border ${
-                  recognitionResult.success
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-red-50 border-red-200'
-                }`}>
+                <div
+                  className={`p-4 rounded-lg border ${
+                    recognitionResult.success
+                      ? "bg-green-50 border-green-200"
+                      : "bg-red-50 border-red-200"
+                  }`}
+                >
                   <div className="flex items-center gap-2">
                     {recognitionResult.success ? (
                       <CheckCircle className="h-5 w-5 text-green-600" />
                     ) : (
                       <XCircle className="h-5 w-5 text-red-600" />
                     )}
-                    <span className={`font-medium ${
-                      recognitionResult.success ? 'text-green-800' : 'text-red-800'
-                    }`}>
+                    <span
+                      className={`font-medium ${
+                        recognitionResult.success ? "text-green-800" : "text-red-800"
+                      }`}
+                    >
                       {recognitionResult.message}
                     </span>
                   </div>
-                  {recognitionResult.confidence !== undefined && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Confianza: {Math.round(recognitionResult.confidence * 100)}%
-                    </p>
-                  )}
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Confianza: {Math.round(recognitionResult.confidence * 100)}%
+                  </p>
                 </div>
               )}
 
@@ -506,12 +330,12 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
                   {isProcessing ? "Procesando..." : "Capturar y Reconocer"}
                 </Button>
                 <Button variant="outline" onClick={stopCamera}>
-                  Detener Cámara
+                  Detener Camara
                 </Button>
               </div>
 
               <div className="text-xs text-muted-foreground text-center">
-                Imágenes registradas: {storedDescriptors.length}
+                Imagenes registradas: {storedDescriptors.length}
               </div>
             </div>
           )}

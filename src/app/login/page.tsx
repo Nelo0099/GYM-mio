@@ -24,6 +24,7 @@ export default function LoginPage() {
   const [name, setName] = useState("")
   const [isRegister, setIsRegister] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [faceIdOpen, setFaceIdOpen] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -160,6 +161,16 @@ export default function LoginPage() {
               </Button>
             </form>
 
+            {!isRegister && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFaceIdOpen(true)}
+                className="w-full h-10 sm:h-12 rounded-[8px] text-sm sm:text-base"
+              >
+                Iniciar con Face ID
+              </Button>
+            )}
 
           </CardContent>
         </Card>
