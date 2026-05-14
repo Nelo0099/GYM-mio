@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { QrCode, Scan, LogOut, List } from "lucide-react"
+import { QrCode, Scan, LogOut, List, User } from "lucide-react"
 import { Html5QrcodeScanner } from "html5-qrcode"
 
 export default function UserDashboardPage() {
@@ -165,9 +165,9 @@ export default function UserDashboardPage() {
           </Button>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="md:col-span-2">
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
             <CardContent className="pt-6">
               <div className="flex justify-center">
                 <Button
@@ -185,7 +185,24 @@ export default function UserDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-center">
+                <Button
+                  onClick={() => router.push('/dashboard/faceid')}
+                  className="flex items-center gap-2 px-6 py-3 text-base w-full sm:w-auto"
+                >
+                  <User className="h-4 w-4" />
+                  Face ID
+                </Button>
+              </div>
+              <p className="text-center text-xs text-muted-foreground mt-2">
+                Configura tu reconocimiento facial
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardContent className="pt-6">
               <div className="flex justify-center">
                 <Button
