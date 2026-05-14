@@ -10,6 +10,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import dynamic from "next/dynamic"
+
+// Dynamic import to avoid SSR issues with face-api.js
+const FaceIdDialog = dynamic(() => import("@/components/FaceIdDialog").then(mod => ({ default: mod.FaceIdDialog })), {
+  ssr: false,
+  loading: () => null
+})
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
