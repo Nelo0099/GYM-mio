@@ -98,7 +98,6 @@ export function FaceIdDialog({ isOpen, onClose, onLogin }: FaceIdDialogProps) {
       // Continue with empty descriptors - user will be prompted to set up Face ID
     }
   }
-      }
 
       // Fallback: create mock descriptors for demo if none exist
       console.log('No stored descriptors found, using demo mode')
