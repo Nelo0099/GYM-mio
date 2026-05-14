@@ -65,12 +65,26 @@ export default function LoginPage() {
           title: "Inicio de sesión exitoso",
           description: "Bienvenido!",
         })
-        // Redirect based on user role
-        // For now, redirect to dashboard - middleware will handle role-based access
+
+        // Redirect based on user role - check result for user info
+        // Since signIn doesn't return user data, we'll let the dashboard handle redirection
         router.push("/dashboard")
       }
     }
     setLoading(false)
+  }
+
+  const handleFaceIdLogin = async (user: any) => {
+    // For demo purposes, assume successful login
+    // In production, this would validate the recognized user
+    toast({
+      title: "Login facial exitoso",
+      description: "Bienvenido de vuelta",
+    })
+
+    // Simple role check for demo
+    const isAdmin = user.email && user.email.includes('admin')
+    router.push(isAdmin ? "/admin/dashboard" : "/dashboard")
   }
 
   return (
@@ -153,6 +167,12 @@ export default function LoginPage() {
             {isRegister ? "Inicia sesión" : "Únete ahora"}
           </button>
         </p>
+
+        <FaceIdDialog
+          isOpen={faceIdOpen}
+          onClose={() => setFaceIdOpen(false)}
+          onLogin={handleFaceIdLogin}
+        />
       </div>
     </div>
   )

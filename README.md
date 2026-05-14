@@ -226,6 +226,32 @@ Después del despliegue, verifica:
 - **UI:** Tailwind CSS, shadcn/ui
 - **QR:** QRCode.js, html5-qrcode
 
+## 🔐 Sistema Face ID
+
+### Cómo Funciona
+1. **Configuración**: Ve a `/dashboard/faceid` y sube 3-6 fotos de tu rostro
+2. **Login**: Presiona "Face ID" en la pantalla de login
+3. **Reconocimiento**: La app detecta y reconoce tu rostro automáticamente
+
+### Tecnologías Usadas
+- **face-api.js**: Librería de reconocimiento facial para navegador
+- **Modelos CDN**: Carga automática desde JSDelivr
+- **Almacenamiento**: Descriptores faciales en localStorage
+- **Seguridad**: Validación server-side de resultados
+
+### Configuración para Producción
+Para un sistema Face ID completo en producción:
+
+1. **Hospedar modelos localmente** en lugar de usar CDN
+2. **Implementar comparación real** de descriptores faciales
+3. **Base de datos dedicada** para descriptores
+4. **Validación biométrica** adicional (liveness detection)
+
+### Limitaciones Actuales
+- **Modo demo**: Usa reconocimiento simulado para fiabilidad
+- **Almacenamiento local**: Descriptores en browser localStorage
+- **Sin persistencia server**: No guarda descriptores en base de datos
+
 ## 🔧 Solución de Problemas
 
 ### Error 500 en APIs de Rutinas

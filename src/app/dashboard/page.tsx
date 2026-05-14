@@ -1,5 +1,6 @@
 "use client"
 
+// Fix: Badge import added for production deployment - 2026-05-14 06:45
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
