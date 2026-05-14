@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import fs from 'fs'
-import path from 'path'
+import { prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest, { params }: { params: { filename: string } }) {
   try {
@@ -13,7 +12,6 @@ export async function GET(request: NextRequest, { params }: { params: { filename
     }
 
     // URL structure: /api/faceid/images/[userId]/[filename]
-    // params.filename will be "userId/filename"
     const [userId, filename] = params.filename.split('/')
 
     if (!userId || !filename) {
@@ -25,20 +23,25 @@ export async function GET(request: NextRequest, { params }: { params: { filename
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    const userFaceDir = path.join(process.cwd(), 'src', 'photoface', userId)
-    const filePath = path.join(userFaceDir, filename)
+    // Get image from database
+    const faceImage = await prisma.faceImage.findFirst({
+      where: {
+        userId,
+        filename
+      }
+    })
 
-    if (!fs.existsSync(filePath)) {
+    if (!faceImage) {
       return NextResponse.json("Image not found", { status: 404 })
     }
 
-    // Read the image file
-    const imageBuffer = fs.readFileSync(filePath)
+    // Convert base64 back to buffer
+    const imageBuffer = Buffer.from(faceImage.imageData, 'base64')
 
     // Return the image with appropriate headers
     return new NextResponse(imageBuffer, {
       headers: {
-        'Content-Type': 'image/jpeg',
+        'Content-Type': faceImage.mimeType,
         'Cache-Control': 'public, max-age=31536000'
       }
     })
@@ -56,7 +59,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { filen
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    // URL structure: /api/faceid/images/[userId]/[filename]
+    // URL structure: /api/faceid/images/{userId}/{filename}
     const [userId, filename] = params.filename.split('/')
 
     if (!userId || !filename) {
@@ -68,23 +71,17 @@ export async function DELETE(request: NextRequest, { params }: { params: { filen
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    const userFaceDir = path.join(process.cwd(), 'src', 'photoface', userId)
-    const associationFile = path.join(userFaceDir, 'association.json')
-    const filePath = path.join(userFaceDir, filename)
+    // Delete image from database
+    const deletedImage = await prisma.faceImage.deleteMany({
+      where: {
+        userId,
+        filename
+      }
+    })
 
-    if (!fs.existsSync(associationFile) || !fs.existsSync(filePath)) {
+    if (deletedImage.count === 0) {
       return NextResponse.json("Image not found", { status: 404 })
     }
-
-    // Read and update association file
-    const associationData = JSON.parse(fs.readFileSync(associationFile, 'utf-8'))
-    associationData.images = associationData.images.filter((img: any) => img.filename !== filename)
-
-    // Delete the file
-    fs.unlinkSync(filePath)
-
-    // Update association file
-    fs.writeFileSync(associationFile, JSON.stringify(associationData, null, 2))
 
     return NextResponse.json({
       success: true,

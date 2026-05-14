@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
-import fs from 'fs'
-import path from 'path'
-
-// Store face descriptors in memory for faster access
-// In production, consider using Redis or a dedicated database
-const faceDescriptors = new Map<string, any[]>()
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,15 +13,25 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id
 
-    // Return stored face descriptors for this user
-    const descriptors = faceDescriptors.get(userId) || []
+    // Get face descriptors from database
+    const descriptors = await prisma.faceDescriptor.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        descriptor: true,
+        confidence: true,
+        createdAt: true
+      }
+    })
 
     return NextResponse.json({
       userId,
       descriptorsCount: descriptors.length,
-      descriptors: descriptors.map((desc, index) => ({
-        id: index,
-        descriptor: Array.from(desc.descriptor), // Convert Float32Array to regular array
+      descriptors: descriptors.map(desc => ({
+        id: desc.id,
+        descriptor: JSON.parse(desc.descriptor), // Parse JSON string back to array
+        confidence: desc.confidence,
         createdAt: desc.createdAt
       }))
     })
@@ -122,20 +126,24 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json("Invalid descriptors format", { status: 400 })
     }
 
-    // Convert back to Float32Array and store
-    const processedDescriptors = descriptors.map((desc: any) => ({
-      descriptor: new Float32Array(desc.descriptor),
-      createdAt: new Date(desc.createdAt || Date.now())
-    }))
+    // Store descriptors in database
+    const storedDescriptors = []
+    for (const desc of descriptors) {
+      const stored = await prisma.faceDescriptor.create({
+        data: {
+          userId,
+          descriptor: JSON.stringify(desc.descriptor), // Convert array to JSON string
+          confidence: desc.confidence || null
+        }
+      })
+      storedDescriptors.push(stored)
+    }
 
-    // Store in memory (consider Redis for production)
-    faceDescriptors.set(userId, processedDescriptors)
-
-    console.log(`Stored ${processedDescriptors.length} face descriptors for user ${userId}`)
+    console.log(`Stored ${storedDescriptors.length} face descriptors for user ${userId}`)
 
     return NextResponse.json({
       success: true,
-      message: `${processedDescriptors.length} face descriptors stored successfully`
+      message: `${storedDescriptors.length} face descriptors stored successfully`
     })
   } catch (error) {
     console.error("Store face descriptors error:", error)

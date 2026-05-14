@@ -135,10 +135,11 @@ src/photoface/
 - ✅ **Fully Functional Face Detection**: Implemented lightweight JavaScript detector
 - ✅ **Real-time Processing**: No external model downloads required
 - ✅ **Face ID API endpoints**: Complete REST API for image management
-- ✅ **User-specific Storage**: Organized file structure with metadata
+- ✅ **Database Storage**: Images stored as base64 in PostgreSQL (Vercel compatible)
 - ✅ **Admin/User Dashboards**: Face ID buttons in both interfaces
 - ✅ **Error Handling**: Robust error management throughout the system
 - ✅ **Production Ready**: No SSR issues, works in all environments
+- ✅ **Vercel Deployment**: Fixed 500 errors by using database instead of filesystem
 
 ## TODO
 - Add proper error handling for camera permissions

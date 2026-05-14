@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import fs from 'fs'
-import path from 'path'
+import { prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,18 +23,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    const faceDir = path.join(process.cwd(), 'src', 'photoface', userId)
-    const associationFile = path.join(faceDir, 'association.json')
+    // Get face images from database
+    const faceImages = await prisma.faceImage.findMany({
+      where: { userId },
+      orderBy: { uploadedAt: 'desc' },
+      select: {
+        filename: true,
+        mimeType: true,
+        size: true,
+        uploadedAt: true
+      }
+    })
 
-    // Check if user has face data
-    if (!fs.existsSync(associationFile)) {
-      return NextResponse.json({ faceImages: [] })
-    }
-
-    // Read association file
-    const associationData = JSON.parse(fs.readFileSync(associationFile, 'utf-8'))
-
-    const imageFiles = associationData.images.map((image: any) => ({
+    // Convert to the expected format
+    const imageFiles = faceImages.map(image => ({
       filename: image.filename,
       url: `/api/faceid/images/${userId}/${image.filename}`
     }))
@@ -68,51 +69,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json("Unauthorized", { status: 401 })
     }
 
-    // Convert file to buffer for processing
-    const buffer = Buffer.from(await imageFile.arrayBuffer())
+    // Check image count limit (6 images max per user)
+    const existingImagesCount = await prisma.faceImage.count({
+      where: { userId }
+    })
 
-    // Create photoface directory if it doesn't exist
-    const photofaceDir = path.join(process.cwd(), 'src', 'photoface')
-    if (!fs.existsSync(photofaceDir)) {
-      fs.mkdirSync(photofaceDir, { recursive: true })
-    }
-
-    // Create user-specific directory
-    const userFaceDir = path.join(photofaceDir, userId)
-    if (!fs.existsSync(userFaceDir)) {
-      fs.mkdirSync(userFaceDir, { recursive: true })
-    }
-
-    // Read or create association file
-    const associationFile = path.join(userFaceDir, 'association.json')
-    let associationData = { userId, images: [] }
-
-    if (fs.existsSync(associationFile)) {
-      associationData = JSON.parse(fs.readFileSync(associationFile, 'utf-8'))
-    }
-
-    // Check image count limit
-    if (associationData.images.length >= 6) {
+    if (existingImagesCount >= 6) {
       return NextResponse.json("Maximum 6 face images allowed per user", { status: 400 })
     }
 
+    // Convert file to buffer and then to base64
+    const buffer = Buffer.from(await imageFile.arrayBuffer())
+    const base64Data = buffer.toString('base64')
+    const mimeType = imageFile.type || 'image/jpeg'
+
     // Generate unique filename
     const timestamp = Date.now()
-    const filename = `face_${timestamp}_${associationData.images.length + 1}.jpg`
-    const filePath = path.join(userFaceDir, filename)
+    const filename = `face_${timestamp}_${existingImagesCount + 1}.jpg`
 
-    // Save the image
-    fs.writeFileSync(filePath, buffer)
-
-    // Update association file
-    const imageData = {
-      filename,
-      uploadedAt: new Date().toISOString(),
-      size: buffer.length
-    }
-
-    associationData.images.push(imageData)
-    fs.writeFileSync(associationFile, JSON.stringify(associationData, null, 2))
+    // Store image in database
+    await prisma.faceImage.create({
+      data: {
+        userId,
+        filename,
+        imageData: base64Data,
+        mimeType,
+        size: buffer.length
+      }
+    })
 
     return NextResponse.json({
       success: true,
